@@ -3,6 +3,9 @@
     <item
         android:id="@+id/nav_jobs"
         android:title="Jobs"
-        android:icon="@android:drawable/ic_menu_view" />
+        android:icon="@android:drawable/ic_menu_myplaces" />
+    <item
+        android:id="@+id/nav_messages"
+        android:title="Messages"
+        android:icon="@android:drawable/ic_dialog_email" />
 </menu>
-

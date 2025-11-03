@@ -1,86 +1,99 @@
 package com.chotujobs.adapters;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.chotujobs.R;
+import com.bumptech.glide.Glide;
+import com.chotujobs.ChatActivity;
+import com.chotujobs.databinding.ItemJobBinding;
 import com.chotujobs.models.Job;
+import com.chotujobs.services.FirestoreService;
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.List;
 
 public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
-    
+
     private List<Job> jobList;
     private OnJobClickListener listener;
-    
+
     public interface OnJobClickListener {
         void onJobClick(Job job);
     }
-    
+
     public JobAdapter(List<Job> jobList, OnJobClickListener listener) {
         this.jobList = jobList;
         this.listener = listener;
     }
-    
+
     @NonNull
     @Override
     public JobViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_job, parent, false);
-        return new JobViewHolder(view);
+        ItemJobBinding binding = ItemJobBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
+        return new JobViewHolder(binding);
     }
-    
+
     @Override
     public void onBindViewHolder(@NonNull JobViewHolder holder, int position) {
         Job job = jobList.get(position);
         holder.bind(job);
     }
-    
+
     @Override
     public int getItemCount() {
         return jobList.size();
     }
-    
+
     class JobViewHolder extends RecyclerView.ViewHolder {
-        private TextView titleTextView;
-        private TextView categoryTextView;
-        private TextView dateTextView;
-        private ImageView imageView;
-        
-        public JobViewHolder(@NonNull View itemView) {
-            super(itemView);
-            titleTextView = itemView.findViewById(R.id.titleTextView);
-            categoryTextView = itemView.findViewById(R.id.categoryTextView);
-            dateTextView = itemView.findViewById(R.id.dateTextView);
-            imageView = itemView.findViewById(R.id.imageView);
-            
+        private ItemJobBinding binding;
+
+        public JobViewHolder(ItemJobBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
+
             itemView.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION && listener != null) {
                     listener.onJobClick(jobList.get(position));
                 }
             });
+
+            binding.messageButton.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION) {
+                    Job job = jobList.get(position);
+                    String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                    FirestoreService.getInstance().createChat(currentUserId, job.getContractorId(), chatId -> {
+                        if (chatId != null) {
+                            Intent intent = new Intent(itemView.getContext(), ChatActivity.class);
+                            intent.putExtra("chatId", chatId);
+                            intent.putExtra("receiverId", job.getContractorId());
+                            itemView.getContext().startActivity(intent);
+                        }
+                    });
+                }
+            });
         }
-        
+
         public void bind(Job job) {
-            titleTextView.setText(job.getTitle());
-            categoryTextView.setText(job.getCategory());
-            dateTextView.setText("Start: " + job.getStartDate());
-            
-            // Handle image loading if path exists
+            binding.titleTextView.setText(job.getTitle());
+            binding.categoryTextView.setText(job.getCategory());
+            binding.dateTextView.setText("Start: " + job.getStartDate());
+
             if (job.getImagePath() != null && !job.getImagePath().isEmpty()) {
-                // You can add Glide or Picasso here if needed
-                imageView.setVisibility(View.VISIBLE);
+                binding.imageView.setVisibility(View.VISIBLE);
+                Glide.with(itemView.getContext())
+                        .load(Uri.parse(job.getImagePath()))
+                        .into(binding.imageView);
             } else {
-                imageView.setVisibility(View.GONE);
+                binding.imageView.setVisibility(View.GONE);
             }
         }
     }
 }
-
