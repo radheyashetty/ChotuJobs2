@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment;
 
 import com.chotujobs.databinding.ActivityMainBinding;
 import com.chotujobs.fragments.AgentFragment;
+import com.chotujobs.fragments.ChatsFragment;
 import com.chotujobs.fragments.ContractorFragment;
 import com.chotujobs.fragments.LabourFragment;
 import com.google.firebase.auth.FirebaseAuth;
@@ -54,10 +55,13 @@ public class MainActivity extends AppCompatActivity {
         binding.bottomNav.inflateMenu(menuResId);
         binding.bottomNav.setOnItemSelectedListener(item -> {
             Fragment selectedFragment = null;
-            if (item.getItemId() == R.id.nav_jobs) {
+            int itemId = item.getItemId();
+            if (itemId == R.id.nav_jobs) {
                 selectedFragment = "agent".equals(userRole) ? new AgentFragment() : new LabourFragment();
-            } else if (item.getItemId() == R.id.nav_my_jobs) {
+            } else if (itemId == R.id.nav_my_jobs) {
                 selectedFragment = new ContractorFragment();
+            } else if (itemId == R.id.nav_messages) {
+                selectedFragment = new ChatsFragment();
             }
 
             if (selectedFragment != null) {

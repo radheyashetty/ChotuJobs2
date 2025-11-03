@@ -1,5 +1,6 @@
 package com.chotujobs.adapters;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,8 +10,11 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.chotujobs.ChatActivity;
 import com.chotujobs.databinding.ItemJobBinding;
 import com.chotujobs.models.Job;
+import com.chotujobs.services.FirestoreService;
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.util.List;
 
@@ -57,6 +61,22 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION && listener != null) {
                     listener.onJobClick(jobList.get(position));
+                }
+            });
+
+            binding.messageButton.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION) {
+                    Job job = jobList.get(position);
+                    String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                    FirestoreService.getInstance().createChat(currentUserId, job.getContractorId(), chatId -> {
+                        if (chatId != null) {
+                            Intent intent = new Intent(itemView.getContext(), ChatActivity.class);
+                            intent.putExtra("chatId", chatId);
+                            intent.putExtra("receiverId", job.getContractorId());
+                            itemView.getContext().startActivity(intent);
+                        }
+                    });
                 }
             });
         }

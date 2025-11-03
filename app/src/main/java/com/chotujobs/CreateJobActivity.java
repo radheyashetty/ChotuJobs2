@@ -15,7 +15,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.chotujobs.databinding.ActivityCreateJobBinding;
 import com.chotujobs.models.Job;
 import com.chotujobs.services.FirestoreService;
-import com.google.firebase.firestore.GeoPoint;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -28,12 +27,9 @@ public class CreateJobActivity extends AppCompatActivity {
     private ActivityCreateJobBinding binding;
     private FirestoreService firestoreService;
     private String contractorId;
-    private double latitude = 0;
-    private double longitude = 0;
     private String selectedImagePath = null;
     private Calendar calendar;
 
-    private static final int PICK_LOCATION_REQUEST = 102;
     private static final int PICK_IMAGE_REQUEST = 103;
 
     @Override
@@ -88,11 +84,6 @@ public class CreateJobActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        binding.pickLocationButton.setOnClickListener(v -> {
-            Intent intent = new Intent(this, MapsActivity.class);
-            startActivityForResult(intent, PICK_LOCATION_REQUEST);
-        });
-
         binding.addImageButton.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             startActivityForResult(intent, PICK_IMAGE_REQUEST);
@@ -106,11 +97,7 @@ public class CreateJobActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK && data != null) {
-            if (requestCode == PICK_LOCATION_REQUEST) {
-                latitude = data.getDoubleExtra("latitude", 0);
-                longitude = data.getDoubleExtra("longitude", 0);
-                Toast.makeText(this, "Location selected", Toast.LENGTH_SHORT).show();
-            } else if (requestCode == PICK_IMAGE_REQUEST) {
+            if (requestCode == PICK_IMAGE_REQUEST) {
                 Uri imageUri = data.getData();
                 selectedImagePath = imageUri.toString();
                 binding.imageView.setImageURI(imageUri);
@@ -123,6 +110,7 @@ public class CreateJobActivity extends AppCompatActivity {
         String title = binding.titleEditText.getText().toString().trim();
         String category = binding.categorySpinner.getSelectedItem().toString();
         String startDate = binding.startDateEditText.getText().toString().trim();
+        String location = binding.locationEditText.getText().toString().trim();
 
         if (title.isEmpty()) {
             Toast.makeText(this, "Please enter job title", Toast.LENGTH_SHORT).show();
@@ -132,24 +120,24 @@ public class CreateJobActivity extends AppCompatActivity {
             Toast.makeText(this, "Please select start date", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (latitude == 0 || longitude == 0) {
-            Toast.makeText(this, "Please select location", Toast.LENGTH_SHORT).show();
+        if (location.isEmpty()) {
+            Toast.makeText(this, "Please enter a location", Toast.LENGTH_SHORT).show();
             return;
         }
 
         binding.progressBar.setVisibility(View.VISIBLE);
         binding.saveButton.setEnabled(false);
 
-        createJobInFirestore(title, category, startDate);
+        createJobInFirestore(title, category, startDate, location);
     }
 
-    private void createJobInFirestore(String title, String category, String startDate) {
+    private void createJobInFirestore(String title, String category, String startDate, String location) {
         Job job = new Job();
         job.setContractorId(contractorId);
         job.setTitle(title);
         job.setCategory(category);
         job.setStartDate(startDate);
-        job.setLocation(new GeoPoint(latitude, longitude));
+        job.setLocation(location);
         job.setImagePath(selectedImagePath);
         job.setStatus("active");
 

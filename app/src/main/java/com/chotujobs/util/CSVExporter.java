@@ -6,7 +6,6 @@ import android.widget.Toast;
 import com.chotujobs.models.Bid;
 import com.chotujobs.models.Job;
 import com.chotujobs.models.User;
-import com.google.firebase.firestore.GeoPoint;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -28,12 +27,7 @@ public class CSVExporter {
         csv.append(job.getTitle()).append(",");
         csv.append(job.getCategory()).append(",");
         csv.append(job.getStartDate()).append(",");
-        GeoPoint location = job.getLocation();
-        if (location != null) {
-            csv.append("\"").append(location.getLatitude()).append(",").append(location.getLongitude()).append("\"").append(",");
-        } else {
-            csv.append("N/A,");
-        }
+        csv.append(job.getLocation()).append(",");
 
         // Winner details
         User winner = userMap.get(winningBid.getBidderId());

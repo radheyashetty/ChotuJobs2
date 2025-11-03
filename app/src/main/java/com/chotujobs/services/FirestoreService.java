@@ -3,16 +3,18 @@ package com.chotujobs.services;
 import android.util.Log;
 
 import com.chotujobs.models.Bid;
+import com.chotujobs.models.Chat;
 import com.chotujobs.models.Job;
+import com.chotujobs.models.Message;
 import com.chotujobs.models.User;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.GeoPoint;
 import com.google.firebase.firestore.Query;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,8 @@ public class FirestoreService {
     private static final String COLLECTION_JOBS = "jobs";
     private static final String COLLECTION_USERS = "users";
     private static final String SUBCOLLECTION_BIDS = "bids";
+    private static final String COLLECTION_CHATS = "chats";
+    private static final String SUBCOLLECTION_MESSAGES = "messages";
 
     private FirestoreService() {
         db = FirebaseFirestore.getInstance();
@@ -296,6 +300,51 @@ public class FirestoreService {
                     listener.onComplete(false);
                 });
     }
+
+    // ========== CHAT METHODS ==========
+
+    public void createChat(String userId1, String userId2, OnCompleteListener<String> listener) {
+        String chatId = (userId1.compareTo(userId2) > 0) ? userId1 + userId2 : userId2 + userId1;
+
+        db.collection(COLLECTION_CHATS).document(chatId).get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if(!documentSnapshot.exists()){
+                        Map<String, Object> chatData = new HashMap<>();
+                        chatData.put("userIds", Arrays.asList(userId1, userId2));
+                        db.collection(COLLECTION_CHATS).document(chatId).set(chatData)
+                                .addOnSuccessListener(aVoid -> listener.onComplete(chatId))
+                                .addOnFailureListener(e -> listener.onComplete(null));
+                    } else {
+                        listener.onComplete(chatId);
+                    }
+                })
+                .addOnFailureListener(e -> listener.onComplete(null));
+    }
+
+    public void sendMessage(String chatId, Message message, OnCompleteListener<Boolean> listener) {
+        db.collection(COLLECTION_CHATS).document(chatId)
+                .collection(SUBCOLLECTION_MESSAGES).add(message)
+                .addOnSuccessListener(documentReference -> {
+                    Map<String, Object> chatUpdates = new HashMap<>();
+                    chatUpdates.put("lastMessage", message.getMessage());
+                    chatUpdates.put("lastMessageTimestamp", System.currentTimeMillis());
+                    db.collection(COLLECTION_CHATS).document(chatId).update(chatUpdates);
+                    listener.onComplete(true);
+                })
+                .addOnFailureListener(e -> listener.onComplete(false));
+    }
+
+    public CollectionReference getMessages(String chatId) {
+        return db.collection(COLLECTION_CHATS).document(chatId)
+                .collection(SUBCOLLECTION_MESSAGES);
+    }
+
+    public Query getChatsForUser(String userId) {
+        return db.collection(COLLECTION_CHATS)
+                .whereArrayContains("userIds", userId)
+                .orderBy("lastMessageTimestamp", Query.Direction.DESCENDING);
+    }
+
 
     // ========== CALLBACK INTERFACE ==========
 

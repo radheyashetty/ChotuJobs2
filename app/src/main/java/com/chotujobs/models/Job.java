@@ -1,14 +1,12 @@
 package com.chotujobs.models;
 
-import com.google.firebase.firestore.GeoPoint;
-
 public class Job {
     private String jobId;
     private String contractorId;
     private String title;
     private String category;
     private String startDate;
-    private GeoPoint location;
+    private String location; // Changed from GeoPoint to String
     private String imagePath; // nullable - local path
     private String status; // "active" or "closed"
 
@@ -54,11 +52,11 @@ public class Job {
         this.startDate = startDate;
     }
 
-    public GeoPoint getLocation() {
+    public String getLocation() {
         return location;
     }
 
-    public void setLocation(GeoPoint location) {
+    public void setLocation(String location) {
         this.location = location;
     }
 
