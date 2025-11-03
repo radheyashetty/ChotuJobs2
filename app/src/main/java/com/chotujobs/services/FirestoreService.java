@@ -300,12 +300,12 @@ public class FirestoreService {
                     listener.onComplete(false);
                 });
     }
-
+    
     // ========== CHAT METHODS ==========
 
     public void createChat(String userId1, String userId2, OnCompleteListener<String> listener) {
         String chatId = (userId1.compareTo(userId2) > 0) ? userId1 + userId2 : userId2 + userId1;
-
+        
         db.collection(COLLECTION_CHATS).document(chatId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if(!documentSnapshot.exists()){
@@ -320,7 +320,7 @@ public class FirestoreService {
                 })
                 .addOnFailureListener(e -> listener.onComplete(null));
     }
-
+    
     public void sendMessage(String chatId, Message message, OnCompleteListener<Boolean> listener) {
         db.collection(COLLECTION_CHATS).document(chatId)
                 .collection(SUBCOLLECTION_MESSAGES).add(message)
@@ -333,12 +333,12 @@ public class FirestoreService {
                 })
                 .addOnFailureListener(e -> listener.onComplete(false));
     }
-
+    
     public CollectionReference getMessages(String chatId) {
         return db.collection(COLLECTION_CHATS).document(chatId)
                 .collection(SUBCOLLECTION_MESSAGES);
     }
-
+    
     public Query getChatsForUser(String userId) {
         return db.collection(COLLECTION_CHATS)
                 .whereArrayContains("userIds", userId)

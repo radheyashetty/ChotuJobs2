@@ -210,7 +210,7 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
     }
-
+    
     private void createUserProfile(User user, String uid, String role){
         firestoreService.createUserProfile(user, uid, success -> {
             if (success) {

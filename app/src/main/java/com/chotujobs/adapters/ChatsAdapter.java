@@ -12,17 +12,18 @@ import com.chotujobs.databinding.ItemChatBinding;
 import com.chotujobs.models.Chat;
 import com.chotujobs.models.User;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.List;
+import java.util.Map;
 
 public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHolder> {
 
     private List<Chat> chatList;
+    private Map<String, User> userMap;
 
-    public ChatsAdapter(List<Chat> chatList) {
+    public ChatsAdapter(List<Chat> chatList, Map<String, User> userMap) {
         this.chatList = chatList;
+        this.userMap = userMap;
     }
 
     @NonNull
@@ -62,21 +63,19 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
             }
 
             if (!otherUserId.isEmpty()) {
-                FirebaseFirestore.getInstance().collection("users").document(otherUserId).get()
-                        .addOnSuccessListener(documentSnapshot -> {
-                            if (documentSnapshot.exists()) {
-                                User user = documentSnapshot.toObject(User.class);
-                                binding.userNameTextView.setText(user.getName());
-                            }
-                        });
+                User user = userMap.get(otherUserId);
+                if (user != null) {
+                    binding.userNameTextView.setText(user.getName());
+                }
             }
 
             binding.lastMessageTextView.setText(chat.getLastMessage());
 
+            final String finalOtherUserId = otherUserId;
             itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(itemView.getContext(), ChatActivity.class);
                 intent.putExtra("chatId", chat.getChatId());
-                intent.putExtra("receiverId", otherUserId);
+                intent.putExtra("receiverId", finalOtherUserId);
                 itemView.getContext().startActivity(intent);
             });
         }
