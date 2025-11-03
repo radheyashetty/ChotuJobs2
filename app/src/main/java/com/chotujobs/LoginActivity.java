@@ -51,6 +51,19 @@ public class LoginActivity extends AppCompatActivity {
         binding.btnEmailLogin.setOnClickListener(v -> showEmailFields());
         binding.btnPhoneLogin.setOnClickListener(v -> showPhoneFields());
         binding.btnAction.setOnClickListener(v -> handleAction());
+        binding.btnCancel.setOnClickListener(v -> resetToInitialState());
+    }
+
+    private void resetToInitialState(){
+        isEmailLogin = true;
+        binding.emailFields.setVisibility(View.GONE);
+        binding.phoneFields.setVisibility(View.GONE);
+        binding.otpInputLayout.setVisibility(View.GONE);
+        binding.phoneNumberInputLayout.setVisibility(View.VISIBLE);
+        binding.btnAction.setVisibility(View.GONE);
+        binding.btnCancel.setVisibility(View.GONE);
+        binding.btnEmailLogin.setVisibility(View.VISIBLE);
+        binding.btnPhoneLogin.setVisibility(View.VISIBLE);
     }
 
     private void showEmailFields() {
@@ -58,6 +71,7 @@ public class LoginActivity extends AppCompatActivity {
         binding.emailFields.setVisibility(View.VISIBLE);
         binding.phoneFields.setVisibility(View.GONE);
         binding.btnAction.setVisibility(View.VISIBLE);
+        binding.btnCancel.setVisibility(View.VISIBLE);
         binding.btnAction.setText("Login / Sign Up");
         binding.btnEmailLogin.setVisibility(View.GONE);
         binding.btnPhoneLogin.setVisibility(View.GONE);
@@ -68,6 +82,7 @@ public class LoginActivity extends AppCompatActivity {
         binding.emailFields.setVisibility(View.GONE);
         binding.phoneFields.setVisibility(View.VISIBLE);
         binding.btnAction.setVisibility(View.VISIBLE);
+        binding.btnCancel.setVisibility(View.VISIBLE);
         binding.btnAction.setText("Send OTP");
         binding.btnEmailLogin.setVisibility(View.GONE);
         binding.btnPhoneLogin.setVisibility(View.GONE);
@@ -139,7 +154,8 @@ public class LoginActivity extends AppCompatActivity {
                     @Override
                     public void onCodeSent(String verificationId, PhoneAuthProvider.ForceResendingToken token) {
                         LoginActivity.this.verificationId = verificationId;
-                        ((View) binding.otpEditText.getParent()).setVisibility(View.VISIBLE);
+                        binding.phoneNumberInputLayout.setVisibility(View.GONE);
+                        binding.otpInputLayout.setVisibility(View.VISIBLE);
                         binding.btnAction.setText("Verify OTP");
                         binding.btnAction.setEnabled(true);
                     }
