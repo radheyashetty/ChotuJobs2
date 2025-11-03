@@ -6,18 +6,16 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.chotujobs.CreateJobActivity;
-import com.chotujobs.R;
 import com.chotujobs.adapters.ContractorJobAdapter;
+import com.chotujobs.databinding.FragmentContractorBinding;
 import com.chotujobs.models.Job;
 import com.chotujobs.services.FirestoreService;
 
@@ -25,44 +23,42 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ContractorFragment extends Fragment {
-    
-    private RecyclerView recyclerView;
+
+    private FragmentContractorBinding binding;
     private ContractorJobAdapter adapter;
     private FirestoreService firestoreService;
     private String currentUserId;
     private List<Job> jobList;
-    private Button createJobButton;
-    
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_contractor, container, false);
-        
+        binding = FragmentContractorBinding.inflate(inflater, container, false);
+
         firestoreService = FirestoreService.getInstance();
         SharedPreferences prefs = requireContext().getSharedPreferences("chotujobs_prefs", 0);
         currentUserId = prefs.getString("user_id", "");
-        
-        createJobButton = view.findViewById(R.id.btnCreateJob);
-        recyclerView = view.findViewById(R.id.recyclerView);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        
+
+        binding.recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+
         jobList = new ArrayList<>();
         adapter = new ContractorJobAdapter(jobList, job -> {
-            // Show job details with bids and select winner
             showJobDetails(job);
         });
-        recyclerView.setAdapter(adapter);
-        
-        createJobButton.setOnClickListener(v -> {
+        binding.recyclerView.setAdapter(adapter);
+
+        binding.btnCreateJob.setOnClickListener(v -> {
             Intent intent = new Intent(getContext(), CreateJobActivity.class);
             startActivityForResult(intent, 100);
         });
-        
+
         loadJobs();
-        
-        return view;
+
+        binding.swipeRefreshLayout.setOnRefreshListener(() -> loadJobs());
+
+        return binding.getRoot();
     }
-    
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -70,9 +66,11 @@ public class ContractorFragment extends Fragment {
             loadJobs();
         }
     }
-    
+
     private void loadJobs() {
+        binding.swipeRefreshLayout.setRefreshing(true);
         firestoreService.getJobsByContractor(currentUserId, jobs -> {
+            binding.swipeRefreshLayout.setRefreshing(false);
             if (jobs != null) {
                 jobList.clear();
                 jobList.addAll(jobs);
@@ -82,7 +80,7 @@ public class ContractorFragment extends Fragment {
             }
         });
     }
-    
+
     private void showJobDetails(Job job) {
         JobDetailsDialogFragment dialog = JobDetailsDialogFragment.newInstance(job.getJobId());
         dialog.setJobClosedListener(() -> {
@@ -91,5 +89,10 @@ public class ContractorFragment extends Fragment {
         });
         dialog.show(getParentFragmentManager(), "job_details");
     }
-}
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
+}

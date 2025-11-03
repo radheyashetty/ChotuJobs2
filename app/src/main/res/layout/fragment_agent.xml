@@ -7,7 +7,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Available Jobs"
+        android:text="Available Jobs (Agent)"
         android:textSize="24sp"
         android:textStyle="bold"
         android:padding="16dp"
@@ -26,7 +26,7 @@
             android:padding="8dp" />
 
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-    
+
     <ProgressBar
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"
