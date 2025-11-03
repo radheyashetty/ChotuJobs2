@@ -1,5 +1,8 @@
 package com.chotujobs.models;
 
+import com.google.firebase.firestore.ServerTimestamp;
+import java.util.Date;
+
 public class Bid {
     private String bidId;
     private String jobId;
@@ -7,6 +10,7 @@ public class Bid {
     private double bidAmount;
     private String labourerIdIfAgent; // nullable - only set if bidder is an agent
     private int winnerFlag; // 0 or 1
+    private @ServerTimestamp Date timestamp;
     
     public Bid() {}
     
@@ -57,5 +61,12 @@ public class Bid {
     public void setWinnerFlag(int winnerFlag) {
         this.winnerFlag = winnerFlag;
     }
-}
 
+    public Date getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Date timestamp) {
+        this.timestamp = timestamp;
+    }
+}

@@ -157,7 +157,6 @@ public class FirestoreService {
         jobData.put("location", job.getLocation());
         jobData.put("imagePath", job.getImagePath());
         jobData.put("status", "active");
-        jobData.put("timestamp", System.currentTimeMillis());
 
         db.collection(COLLECTION_JOBS).add(jobData)
                 .addOnSuccessListener(documentReference -> {
@@ -255,7 +254,6 @@ public class FirestoreService {
         bidData.put("bidAmount", bid.getBidAmount());
         bidData.put("labourerIdIfAgent", bid.getLabourerIdIfAgent());
         bidData.put("status", "pending");
-        bidData.put("timestamp", System.currentTimeMillis());
 
         db.collection(COLLECTION_JOBS).document(bid.getJobId())
                 .collection(SUBCOLLECTION_BIDS).add(bidData)
@@ -340,9 +338,10 @@ public class FirestoreService {
                 .addOnFailureListener(e -> listener.onComplete(false));
     }
     
-    public CollectionReference getMessages(String chatId) {
+    public Query getMessages(String chatId) {
         return db.collection(COLLECTION_CHATS).document(chatId)
-                .collection(SUBCOLLECTION_MESSAGES);
+                .collection(SUBCOLLECTION_MESSAGES)
+                .orderBy("timestamp", Query.Direction.ASCENDING);
     }
     
     public Query getChatsForUser(String userId) {
