@@ -24,43 +24,23 @@
         android:layout_marginBottom="32dp"
         android:textColor="@android:color/darker_gray" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:hint="Email"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/emailEditText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="textEmailAddress" />
-
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="32dp"
-        android:hint="Password"
-        style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/passwordEditText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="textPassword" />
-
-    </com.google.android.material.textfield.TextInputLayout>
-
     <Button
-        android:id="@+id/btnLogin"
+        android:id="@+id/btnEmailLogin"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Login / Sign Up"
+        android:text="Login With Email"
         android:textSize="18sp"
         android:padding="16dp"
         style="@style/Widget.Material3.Button" />
+
+    <Button
+        android:id="@+id/btnPhoneLogin"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Login With Phone / OTP"
+        android:textSize="18sp"
+        android:padding="16dp"
+        android:layout_marginTop="16dp"
+        style="@style/Widget.Material3.Button.OutlinedButton" />
 
 </LinearLayout>

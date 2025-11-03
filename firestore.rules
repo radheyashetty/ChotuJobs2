@@ -2,85 +2,27 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // User documents - users can read any user, but only modify their own
+    // Users can only read and write to their own user document.
     match /users/{userId} {
-      allow read: if request.auth != null;
-      // Allow create if creating own user doc
-      allow create: if request.auth != null && request.auth.uid == userId;
-      // Allow update only if owner
-      allow update: if request.auth != null && request.auth.uid == userId;
-      allow delete: if false;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Job documents - public read, only contractors can create/update
+    // All authenticated users can read jobs.
+    // Only contractors can create jobs.
+    // Only the contractor who created the job can update it.
     match /jobs/{jobId} {
-      allow read: if true; // job listings are public
-      // Only Contractors can create jobs
-      allow create: if request.auth != null
-                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Contractor'
-                    && request.resource.data.createdByUID == request.auth.uid;
-      // Update: only creator contractor can update
-      allow update, delete: if request.auth != null
-                    && resource.data.createdByUID == request.auth.uid
-                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Contractor';
-    }
-
-    // Bid documents - public read, laborers create, contractors manage
-    match /bids/{bidId} {
-      allow read: if true;
-      // Only laborers can create bids and bidderUID must match auth.uid
-      allow create: if request.auth != null
-                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Laborer'
-                    && request.resource.data.bidderUID == request.auth.uid;
-      // Update status: only contractor who owns the job can accept/reject
-      allow update: if request.auth != null && 
-        // find job doc
-        exists(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)) &&
-        get(/databases/$(database)/documents/jobs/$(request.resource.data.jobId)).data.createdByUID == request.auth.uid;
-      allow delete: if false;
-    }
-
-    // Message documents - users can only read/write their own messages
-    match /messages/{msgId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.senderUID == request.auth.uid;
-      allow update, delete: if false;
+      allow create: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'contractor';
+      allow update: if request.auth != null && resource.data.contractorId == request.auth.uid;
     }
 
-    // Payment documents - only contractors can create, only job participants can read
-    match /payments/{paymentId} {
-      allow read: if request.auth != null && 
-        (resource.data.contractorUID == request.auth.uid || 
-         resource.data.laborerUID == request.auth.uid);
-      allow create: if request.auth != null
-                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Contractor'
-                    && request.resource.data.contractorUID == request.auth.uid;
-      allow update: if false;
-      allow delete: if false;
-    }
-
-    // Notification documents - users can only read their own notifications
-    match /notifications/{notificationId} {
-      allow read: if request.auth != null && resource.data.recipientUID == request.auth.uid;
-      allow create: if request.auth != null;
-      allow update, delete: if false;
-    }
-
-    // Agent-specific rules for managing laborers
-    match /agent_laborer_assignments/{assignmentId} {
+    // All authenticated users can read bids.
+    // Laborers and agents can create bids.
+    // The contractor who owns the job can update bids (to select a winner).
+    match /jobs/{jobId}/bids/{bidId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null
-                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Agent'
-                    && request.resource.data.agentUID == request.auth.uid;
-      allow update: if request.auth != null
-                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Agent'
-                    && resource.data.agentUID == request.auth.uid;
-      allow delete: if false;
-    }
-
-    // Default deny all other documents
-    match /{document=**} {
-      allow read, write: if false;
+      allow create: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'labourer' || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'agent');
+      allow update: if request.auth != null && get(/databases/$(database)/documents/jobs/$(jobId)).data.contractorId == request.auth.uid;
     }
   }
 }

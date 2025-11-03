@@ -62,6 +62,20 @@
             android:text="Pick Location on Map"
             android:layout_marginBottom="16dp" />
 
+        <Button
+            android:id="@+id/addImageButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Add Image"
+            android:layout_marginBottom="16dp" />
+
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:visibility="gone"
+            android:layout_marginBottom="16dp" />
+
         <ProgressBar
             android:id="@+id/progressBar"
             android:layout_width="wrap_content"

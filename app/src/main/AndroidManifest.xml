@@ -54,6 +54,18 @@
             android:name="com.chotujobs.CreateJobActivity"
             android:exported="false"
             android:theme="@style/Theme.ChotuJobs" />
+
+        <!-- Email Login Activity -->
+        <activity
+            android:name="com.chotujobs.EmailLoginActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ChotuJobs" />
+
+        <!-- Phone Auth Activity -->
+        <activity
+            android:name="com.chotujobs.PhoneAuthActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ChotuJobs" />
             
         <!-- Google Maps API Key - Add your actual API key here -->
         <meta-data

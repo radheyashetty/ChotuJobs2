@@ -18,44 +18,49 @@ import java.util.List;
 import java.util.Map;
 
 public class FirestoreService {
-    
+
     private static final String TAG = "FirestoreService";
     private static FirestoreService instance;
     private FirebaseFirestore db;
     private FirebaseAuth auth;
-    
+
     // Collection names
     private static final String COLLECTION_JOBS = "jobs";
     private static final String COLLECTION_USERS = "users";
     private static final String SUBCOLLECTION_BIDS = "bids";
-    
+
     private FirestoreService() {
         db = FirebaseFirestore.getInstance();
         auth = FirebaseAuth.getInstance();
     }
-    
+
     public static synchronized FirestoreService getInstance() {
         if (instance == null) {
             instance = new FirestoreService();
         }
         return instance;
     }
-    
+
     public String getCurrentUserId() {
         if (auth.getCurrentUser() != null) {
             return auth.getCurrentUser().getUid();
         }
         return null;
     }
-    
+
     // ========== USER METHODS ==========
-    
+
     public void createUserProfile(User user, String uid, OnCompleteListener<Boolean> listener) {
         Map<String, Object> userData = new HashMap<>();
         userData.put("name", user.getName());
-        userData.put("email", user.getEmail());
+        if(user.getEmail() != null) {
+            userData.put("email", user.getEmail());
+        }
+        if(user.getPhone() != null){
+            userData.put("phone", user.getPhone());
+        }
         userData.put("role", user.getRole());
-        
+
         db.collection(COLLECTION_USERS).document(uid).set(userData)
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "User profile created successfully");
@@ -66,7 +71,7 @@ public class FirestoreService {
                     listener.onComplete(false);
                 });
     }
-    
+
     public void getUserProfile(String uid, OnCompleteListener<User> listener) {
         db.collection(COLLECTION_USERS).document(uid).get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -85,7 +90,7 @@ public class FirestoreService {
                     listener.onComplete(null);
                 });
     }
-    
+
     public void getUsersByRole(String role, OnCompleteListener<List<User>> listener) {
         db.collection(COLLECTION_USERS)
                 .whereEqualTo("role", role)
@@ -106,12 +111,12 @@ public class FirestoreService {
                     listener.onComplete(new ArrayList<>());
                 });
     }
-    
+
     // Alias method for easier usage
     public void getUser(String uid, OnCompleteListener<User> listener) {
         getUserProfile(uid, listener);
     }
-    
+
     public void getAllUsers(OnCompleteListener<List<User>> listener) {
         db.collection(COLLECTION_USERS).get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
@@ -130,26 +135,20 @@ public class FirestoreService {
                     listener.onComplete(new ArrayList<>());
                 });
     }
-    
+
     // ========== JOB METHODS ==========
-    
+
     public void createJob(Job job, OnCompleteListener<String> listener) {
         Map<String, Object> jobData = new HashMap<>();
         jobData.put("contractorId", job.getContractorId());
         jobData.put("title", job.getTitle());
         jobData.put("category", job.getCategory());
         jobData.put("startDate", job.getStartDate());
-        
-        // GeoPoint for location
-        if (job.getLatitude() != 0 && job.getLongitude() != 0) {
-            jobData.put("location", new GeoPoint(job.getLatitude(), job.getLongitude()));
-        }
-        
+        jobData.put("location", job.getLocation());
         jobData.put("imagePath", job.getImagePath());
         jobData.put("status", "active");
-        jobData.put("imageUrl", job.getImageUrl());
         jobData.put("timestamp", System.currentTimeMillis());
-        
+
         db.collection(COLLECTION_JOBS).add(jobData)
                 .addOnSuccessListener(documentReference -> {
                     Log.d(TAG, "Job created successfully: " + documentReference.getId());
@@ -160,7 +159,7 @@ public class FirestoreService {
                     listener.onComplete(null);
                 });
     }
-    
+
     public void getAllActiveJobs(OnCompleteListener<List<Job>> listener) {
         db.collection(COLLECTION_JOBS)
                 .whereEqualTo("status", "active")
@@ -169,11 +168,9 @@ public class FirestoreService {
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Job> jobs = new ArrayList<>();
                     for (var document : queryDocumentSnapshots.getDocuments()) {
-                        Job job = documentToJob(document);
-                        if (job != null) {
-                            job.setJobId(document.getId());
-                            jobs.add(job);
-                        }
+                        Job job = document.toObject(Job.class);
+                        job.setJobId(document.getId());
+                        jobs.add(job);
                     }
                     listener.onComplete(jobs);
                 })
@@ -182,7 +179,7 @@ public class FirestoreService {
                     listener.onComplete(new ArrayList<>());
                 });
     }
-    
+
     public void getJobsByContractor(String contractorId, OnCompleteListener<List<Job>> listener) {
         db.collection(COLLECTION_JOBS)
                 .whereEqualTo("contractorId", contractorId)
@@ -191,11 +188,9 @@ public class FirestoreService {
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Job> jobs = new ArrayList<>();
                     for (var document : queryDocumentSnapshots.getDocuments()) {
-                        Job job = documentToJob(document);
-                        if (job != null) {
-                            job.setJobId(document.getId());
-                            jobs.add(job);
-                        }
+                        Job job = document.toObject(Job.class);
+                        job.setJobId(document.getId());
+                        jobs.add(job);
                     }
                     listener.onComplete(jobs);
                 })
@@ -204,12 +199,12 @@ public class FirestoreService {
                     listener.onComplete(new ArrayList<>());
                 });
     }
-    
+
     public void getJobById(String jobId, OnCompleteListener<Job> listener) {
         db.collection(COLLECTION_JOBS).document(jobId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
-                        Job job = documentToJob(documentSnapshot);
+                        Job job = documentSnapshot.toObject(Job.class);
                         if (job != null) {
                             job.setJobId(jobId);
                         }
@@ -223,14 +218,14 @@ public class FirestoreService {
                     listener.onComplete(null);
                 });
     }
-    
+
     public void updateJobStatus(String jobId, String status, String winnerUserId, OnCompleteListener<Boolean> listener) {
         Map<String, Object> updates = new HashMap<>();
         updates.put("status", status);
         if (winnerUserId != null) {
             updates.put("winnerUserId", winnerUserId);
         }
-        
+
         db.collection(COLLECTION_JOBS).document(jobId).update(updates)
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "Job status updated successfully");
@@ -241,9 +236,9 @@ public class FirestoreService {
                     listener.onComplete(false);
                 });
     }
-    
+
     // ========== BID METHODS ==========
-    
+
     public void createBid(Bid bid, OnCompleteListener<String> listener) {
         Map<String, Object> bidData = new HashMap<>();
         bidData.put("bidderId", bid.getBidderId());
@@ -251,7 +246,7 @@ public class FirestoreService {
         bidData.put("labourerIdIfAgent", bid.getLabourerIdIfAgent());
         bidData.put("status", "pending");
         bidData.put("timestamp", System.currentTimeMillis());
-        
+
         db.collection(COLLECTION_JOBS).document(bid.getJobId())
                 .collection(SUBCOLLECTION_BIDS).add(bidData)
                 .addOnSuccessListener(documentReference -> {
@@ -263,7 +258,7 @@ public class FirestoreService {
                     listener.onComplete(null);
                 });
     }
-    
+
     public void getBidsByJob(String jobId, OnCompleteListener<List<Bid>> listener) {
         db.collection(COLLECTION_JOBS).document(jobId)
                 .collection(SUBCOLLECTION_BIDS)
@@ -272,12 +267,10 @@ public class FirestoreService {
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Bid> bids = new ArrayList<>();
                     for (var document : queryDocumentSnapshots.getDocuments()) {
-                        Bid bid = documentToBid(document);
-                        if (bid != null) {
-                            bid.setBidId(document.getId());
-                            bid.setJobId(jobId);
-                            bids.add(bid);
-                        }
+                        Bid bid = document.toObject(Bid.class);
+                        bid.setBidId(document.getId());
+                        bid.setJobId(jobId);
+                        bids.add(bid);
                     }
                     listener.onComplete(bids);
                 })
@@ -286,11 +279,11 @@ public class FirestoreService {
                     listener.onComplete(new ArrayList<>());
                 });
     }
-    
+
     public void updateBidWinner(String jobId, String bidId, OnCompleteListener<Boolean> listener) {
         Map<String, Object> updates = new HashMap<>();
         updates.put("winnerFlag", 1);
-        
+
         db.collection(COLLECTION_JOBS).document(jobId)
                 .collection(SUBCOLLECTION_BIDS).document(bidId)
                 .update(updates)
@@ -303,73 +296,10 @@ public class FirestoreService {
                     listener.onComplete(false);
                 });
     }
-    
-    // ========== HELPER METHODS ==========
-    
-    private Job documentToJob(com.google.firebase.firestore.QueryDocumentSnapshot document) {
-        return documentToJob((com.google.firebase.firestore.DocumentSnapshot) document);
-    }
-    
-    private Job documentToJob(com.google.firebase.firestore.DocumentSnapshot document) {
-        Map<String, Object> data = document.getData();
-        Job job = new Job();
-        
-        job.setContractorId((String) data.get("contractorId"));
-        job.setTitle((String) data.get("title"));
-        job.setCategory((String) data.get("category"));
-        job.setStartDate((String) data.get("startDate"));
-        job.setImagePath((String) data.get("imagePath"));
-        job.setStatus((String) data.get("status"));
-        job.setImageUrl((String) data.get("imageUrl"));
-        
-        // Handle GeoPoint location
-        GeoPoint geoPoint = (GeoPoint) data.get("location");
-        if (geoPoint != null) {
-            job.setLatitude(geoPoint.getLatitude());
-            job.setLongitude(geoPoint.getLongitude());
-        }
-        
-        return job;
-    }
-    
-    private Bid documentToBid(com.google.firebase.firestore.QueryDocumentSnapshot document) {
-        return documentToBid((com.google.firebase.firestore.DocumentSnapshot) document);
-    }
-    
-    private Bid documentToBid(com.google.firebase.firestore.DocumentSnapshot document) {
-        Map<String, Object> data = document.getData();
-        if (data == null) {
-            return null;
-        }
-        
-        Bid bid = new Bid();
-        
-        bid.setBidderId((String) data.get("bidderId"));
-        
-        Object amount = data.get("bidAmount");
-        if (amount != null) {
-            if (amount instanceof Long) {
-                bid.setBidAmount(((Long) amount).doubleValue());
-            } else if (amount instanceof Double) {
-                bid.setBidAmount((Double) amount);
-            }
-        }
-        
-        String labourerId = (String) data.get("labourerIdIfAgent");
-        bid.setLabourerIdIfAgent(labourerId);
-        
-        Object winner = data.get("winnerFlag");
-        if (winner != null && winner instanceof Long) {
-            bid.setWinnerFlag(((Long) winner).intValue());
-        }
-        
-        return bid;
-    }
-    
+
     // ========== CALLBACK INTERFACE ==========
-    
+
     public interface OnCompleteListener<T> {
         void onComplete(T result);
     }
 }
-
