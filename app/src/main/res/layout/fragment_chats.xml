@@ -7,17 +7,17 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Tap on map to select location, then tap marker to confirm"
+        android:text="Messages"
+        android:textSize="24sp"
+        android:textStyle="bold"
         android:padding="16dp"
-        android:gravity="center"
-        android:background="@android:color/background_dark"
-        android:textColor="@android:color/white" />
+        android:gravity="center" />
 
-    <fragment
-        android:id="@+id/map"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="8dp" />
 
 </LinearLayout>
-
