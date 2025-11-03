@@ -3,8 +3,6 @@ package com.chotujobs;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -15,6 +13,7 @@ import com.chotujobs.fragments.AgentFragment;
 import com.chotujobs.fragments.ChatsFragment;
 import com.chotujobs.fragments.ContractorFragment;
 import com.chotujobs.fragments.LabourFragment;
+import com.chotujobs.fragments.ProfileFragment;
 import com.google.firebase.auth.FirebaseAuth;
 
 public class MainActivity extends AppCompatActivity {
@@ -62,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
                 selectedFragment = new ContractorFragment();
             } else if (itemId == R.id.nav_messages) {
                 selectedFragment = new ChatsFragment();
+            } else if (itemId == R.id.nav_profile) {
+                selectedFragment = new ProfileFragment();
             }
 
             if (selectedFragment != null) {
@@ -86,31 +87,5 @@ public class MainActivity extends AppCompatActivity {
         getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragmentContainer, fragment)
                 .commit();
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.menu_logout) {
-            handleLogout();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
-    private void handleLogout() {
-        auth.signOut();
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.clear();
-        editor.apply();
-
-        Toast.makeText(this, "Logged out successfully", Toast.LENGTH_SHORT).show();
-        startActivity(new Intent(this, LoginActivity.class));
-        finish();
     }
 }

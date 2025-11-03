@@ -53,7 +53,7 @@ public class LoginActivity extends AppCompatActivity {
         binding.btnAction.setOnClickListener(v -> handleAction());
         binding.btnCancel.setOnClickListener(v -> resetToInitialState());
     }
-
+    
     private void resetToInitialState(){
         isEmailLogin = true;
         binding.emailFields.setVisibility(View.GONE);
@@ -202,6 +202,10 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void promptForRole(String uid) {
+        // Hide all input fields to show a clean role selection UI
+        binding.emailFields.setVisibility(View.GONE);
+        binding.phoneFields.setVisibility(View.GONE);
+
         binding.roleSpinner.setVisibility(View.VISIBLE);
         binding.btnAction.setText("Create Account");
         binding.btnAction.setEnabled(true);
