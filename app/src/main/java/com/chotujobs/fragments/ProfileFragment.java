@@ -12,6 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.chotujobs.EditProfileActivity;
 import com.chotujobs.LoginActivity;
 import com.chotujobs.databinding.FragmentProfileBinding;
 import com.chotujobs.models.User;
