@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Network permissions -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Location permissions for job location -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    
+    <!-- Storage permissions for job images and CSV -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" 
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
+        android:maxSdkVersion="28" />
+    
+    <!-- Camera permission -->
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.ChotuJobs">
+        
+        <!-- Login Activity -->
+        <activity
+            android:name="com.chotujobs.LoginActivity"
+            android:exported="true"
+            android:theme="@style/Theme.ChotuJobs">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        
+        <!-- Main Activity -->
+        <activity
+            android:name="com.chotujobs.MainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ChotuJobs" />
+        
+        <!-- Maps Activity -->
+        <activity
+            android:name="com.chotujobs.MapsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ChotuJobs" />
+        
+        <!-- Create Job Activity -->
+        <activity
+            android:name="com.chotujobs.CreateJobActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ChotuJobs" />
+            
+        <!-- Google Maps API Key - Add your actual API key here -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="YOUR_GOOGLE_MAPS_API_KEY_HERE" />
+        
+        <uses-library android:name="org.apache.http.legacy" android:required="false"/>
+
+    </application>
+
+</manifest>
