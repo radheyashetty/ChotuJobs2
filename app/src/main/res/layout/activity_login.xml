@@ -51,6 +51,7 @@
         android:visibility="gone">
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/emailInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
@@ -66,6 +67,7 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/passwordInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="32dp"
@@ -89,6 +91,7 @@
         android:visibility="gone">
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/phoneNumberInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
@@ -104,6 +107,7 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/otpInputLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
@@ -138,5 +142,13 @@
         android:padding="16dp"
         android:visibility="gone"
         style="@style/Widget.Material3.Button" />
+
+    <Button
+        android:id="@+id/btnCancel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cancel"
+        android:visibility="gone"
+        style="@style/Widget.Material3.Button.OutlinedButton" />
 
 </LinearLayout>
