@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.chotujobs.adapters.ChatsAdapter;
 import com.chotujobs.databinding.FragmentChatsBinding;
@@ -19,6 +20,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.FieldPath;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,6 +34,7 @@ public class ChatsFragment extends Fragment {
     private List<Chat> chatList;
     private Map<String, User> userMap;
     private FirestoreService firestoreService;
+    private ListenerRegistration chatListener;
 
     @Nullable
     @Override
@@ -45,15 +48,26 @@ public class ChatsFragment extends Fragment {
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.recyclerView.setAdapter(adapter);
 
+        binding.swipeRefreshLayout.setOnRefreshListener(this::listenForChats);
+
         listenForChats();
 
         return binding.getRoot();
     }
 
     private void listenForChats() {
+        if (chatListener != null) {
+            chatListener.remove();
+        }
+        binding.swipeRefreshLayout.setRefreshing(true);
+        chatList.clear();
+        userMap.clear();
+        adapter.notifyDataSetChanged();
+
         String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        firestoreService.getChatsForUser(currentUserId)
+        chatListener = firestoreService.getChatsForUser(currentUserId)
                 .addSnapshotListener((snapshots, e) -> {
+                    binding.swipeRefreshLayout.setRefreshing(false);
                     if (e != null) {
                         return;
                     }

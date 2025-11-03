@@ -69,7 +69,10 @@ public class JobDetailsDialogFragment extends DialogFragment {
         binding.bidsListView.setOnItemClickListener((parent, view1, position, id) -> {
             if (currentJob != null && "active".equals(currentJob.getStatus())) {
                 Bid bid = allBids.get(position);
-                showConfirmWinnerDialog(bid);
+                User bidder = userMap.get(bid.getBidderId());
+                if(bidder != null){
+                    showBidderDetailsDialog(bid, bidder);
+                }
             }
         });
 
@@ -121,6 +124,12 @@ public class JobDetailsDialogFragment extends DialogFragment {
 
         BidAdapter adapter = new BidAdapter(getContext(), allBids, userMap);
         binding.bidsListView.setAdapter(adapter);
+    }
+
+    private void showBidderDetailsDialog(Bid bid, User bidder) {
+        BidderDetailsDialogFragment dialog = BidderDetailsDialogFragment.newInstance(bid, bidder);
+        dialog.setOnWinnerSelectedListener(this::showConfirmWinnerDialog);
+        dialog.show(getParentFragmentManager(), "bidder_details_dialog");
     }
 
     private void showConfirmWinnerDialog(Bid bid) {

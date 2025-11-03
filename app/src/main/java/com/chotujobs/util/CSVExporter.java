@@ -20,7 +20,7 @@ public class CSVExporter {
 
     public static void exportJobToCSV(Job job, Bid winningBid, List<Bid> allBids, Map<String, User> userMap, Context context) {
         StringBuilder csv = new StringBuilder();
-        csv.append("Job ID,Title,Category,Start Date,Location,Winner,Winner Bid Amount,Labourer\n");
+        csv.append("Job ID,Title,Category,Start Date,Location,Winner,Winner Contact,Winner Bid Amount,Labourer\n");
 
         // Job details
         csv.append(job.getJobId()).append(",");
@@ -33,8 +33,13 @@ public class CSVExporter {
         User winner = userMap.get(winningBid.getBidderId());
         if (winner != null) {
             csv.append(winner.getName()).append(",");
+            if (winner.getEmail() != null) {
+                csv.append(winner.getEmail()).append(",");
+            } else {
+                csv.append(winner.getPhone()).append(",");
+            }
         } else {
-            csv.append("N/A,");
+            csv.append("N/A,N/A,");
         }
         csv.append(winningBid.getBidAmount()).append(",");
 

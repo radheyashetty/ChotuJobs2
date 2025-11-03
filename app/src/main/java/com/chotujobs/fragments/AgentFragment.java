@@ -47,13 +47,15 @@ public class AgentFragment extends Fragment {
 
         loadJobs();
 
+        binding.swipeRefreshLayout.setOnRefreshListener(() -> loadJobs());
+
         return binding.getRoot();
     }
 
     private void loadJobs() {
-        binding.progressBar.setVisibility(View.VISIBLE);
+        binding.swipeRefreshLayout.setRefreshing(true);
         firestoreService.getAllActiveJobs(jobs -> {
-            binding.progressBar.setVisibility(View.GONE);
+            binding.swipeRefreshLayout.setRefreshing(false);
             if (jobs != null && !jobs.isEmpty()) {
                 jobList.clear();
                 jobList.addAll(jobs);

@@ -54,6 +54,12 @@
             android:name="com.chotujobs.ChatActivity"
             android:exported="false"
             android:theme="@style/Theme.ChotuJobs" />
+            
+        <!-- Edit Profile Activity -->
+        <activity
+            android:name="com.chotujobs.EditProfileActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ChotuJobs" />
         
         <uses-library android:name="org.apache.http.legacy" android:required="false"/>
 

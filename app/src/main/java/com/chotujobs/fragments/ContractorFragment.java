@@ -54,6 +54,8 @@ public class ContractorFragment extends Fragment {
 
         loadJobs();
 
+        binding.swipeRefreshLayout.setOnRefreshListener(() -> loadJobs());
+
         return binding.getRoot();
     }
 
@@ -66,7 +68,9 @@ public class ContractorFragment extends Fragment {
     }
 
     private void loadJobs() {
+        binding.swipeRefreshLayout.setRefreshing(true);
         firestoreService.getJobsByContractor(currentUserId, jobs -> {
+            binding.swipeRefreshLayout.setRefreshing(false);
             if (jobs != null) {
                 jobList.clear();
                 jobList.addAll(jobs);

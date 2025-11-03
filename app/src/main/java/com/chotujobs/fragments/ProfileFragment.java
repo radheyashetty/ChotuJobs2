@@ -34,9 +34,20 @@ public class ProfileFragment extends Fragment {
 
         loadUserProfile();
 
+        binding.btnEditProfile.setOnClickListener(v -> {
+            Intent intent = new Intent(getContext(), EditProfileActivity.class);
+            startActivity(intent);
+        });
+
         binding.btnLogout.setOnClickListener(v -> handleLogout());
 
         return binding.getRoot();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        loadUserProfile();
     }
 
     private void loadUserProfile() {

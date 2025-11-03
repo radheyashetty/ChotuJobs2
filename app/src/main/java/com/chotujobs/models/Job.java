@@ -9,6 +9,7 @@ public class Job {
     private String location; // Changed from GeoPoint to String
     private String imagePath; // nullable - local path
     private String status; // "active" or "closed"
+    private long timestamp;
 
     public Job() {}
 
@@ -74,5 +75,13 @@ public class Job {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 }

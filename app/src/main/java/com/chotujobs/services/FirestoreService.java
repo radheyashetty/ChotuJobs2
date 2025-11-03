@@ -115,6 +115,12 @@ public class FirestoreService {
                     listener.onComplete(new ArrayList<>());
                 });
     }
+    
+    public void updateUserProfile(String userId, String name, OnCompleteListener<Boolean> listener) {
+        db.collection(COLLECTION_USERS).document(userId).update("name", name)
+                .addOnSuccessListener(aVoid -> listener.onComplete(true))
+                .addOnFailureListener(e -> listener.onComplete(false));
+    }
 
     // Alias method for easier usage
     public void getUser(String uid, OnCompleteListener<User> listener) {
