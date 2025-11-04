@@ -43,7 +43,9 @@ public class JobsListFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            userRole = getArguments().getString(ARG_USER_ROLE);
+            userRole = getArguments().getString(ARG_USER_ROLE, "labourer");
+        } else {
+            userRole = "labourer";
         }
     }
 
@@ -89,6 +91,9 @@ public class JobsListFragment extends Fragment {
     }
 
     private void showBidDialog(Job job) {
+        if (userRole == null) {
+            return;
+        }
         BidDialogFragment dialog = BidDialogFragment.newInstance(job.getJobId(), currentUserId, userRole);
         dialog.setBidListener(() -> {
             if (isAdded()) {
