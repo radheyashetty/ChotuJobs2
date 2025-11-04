@@ -19,7 +19,7 @@
             android:layout_height="150dp"
             android:scaleType="centerCrop"
             android:layout_marginBottom="8dp"
-            android:visibility="gone"/>
+            android:visibility="visible"/>
 
         <TextView
             android:id="@+id/titleTextView"
@@ -42,6 +42,28 @@
             android:layout_height="wrap_content"
             android:textSize="14sp"
             android:textColor="@android:color/darker_gray" />
+
+        <TextView
+            android:id="@+id/locationTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp"
+            android:textColor="@android:color/darker_gray" />
+
+        <TextView
+            android:id="@+id/requirementsTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:id="@+id/bidLimitTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:layout_marginTop="4dp" />
 
         <LinearLayout
             android:layout_width="match_parent"

@@ -112,6 +112,8 @@ public class CreateJobActivity extends AppCompatActivity {
         String category = binding.categorySpinner.getSelectedItem().toString();
         String startDate = binding.startDateEditText.getText().toString().trim();
         String location = binding.locationEditText.getText().toString().trim();
+        String requirements = binding.requirementsEditText.getText().toString().trim();
+        String bidLimitStr = binding.bidLimitEditText.getText().toString().trim();
 
         if (title.isEmpty()) {
             Toast.makeText(this, "Please enter job title", Toast.LENGTH_SHORT).show();
@@ -125,16 +127,25 @@ public class CreateJobActivity extends AppCompatActivity {
             Toast.makeText(this, "Please enter a location", Toast.LENGTH_SHORT).show();
             return;
         }
+        int bidLimit = 0;
+        if (!bidLimitStr.isEmpty()) {
+            try {
+                bidLimit = Integer.parseInt(bidLimitStr);
+            } catch (NumberFormatException e) {
+                Toast.makeText(this, "Please enter a valid bid limit", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
 
         binding.progressBar.setVisibility(View.VISIBLE);
         binding.saveButton.setEnabled(false);
-
+        int finalBidLimit = bidLimit;
         if (selectedImageUri != null) {
             uploadImage(selectedImageUri, (imageUrl) -> {
-                createJobInFirestore(title, category, startDate, location, imageUrl);
+                createJobInFirestore(title, category, startDate, location, imageUrl, requirements, finalBidLimit);
             });
         } else {
-            createJobInFirestore(title, category, startDate, location, null);
+            createJobInFirestore(title, category, startDate, location, null, requirements, bidLimit);
         }
     }
 
@@ -147,7 +158,7 @@ public class CreateJobActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> listener.onSuccess(null));
     }
 
-    private void createJobInFirestore(String title, String category, String startDate, String location, String imageUrl) {
+    private void createJobInFirestore(String title, String category, String startDate, String location, String imageUrl, String requirements, int bidLimit) {
         Job job = new Job();
         job.setContractorId(contractorId);
         job.setTitle(title);
@@ -155,6 +166,8 @@ public class CreateJobActivity extends AppCompatActivity {
         job.setStartDate(startDate);
         job.setLocation(location);
         job.setImageUrl(imageUrl);
+        job.setRequirements(requirements);
+        job.setBidLimit(bidLimit);
         job.setStatus("active");
 
         firestoreService.createJob(job, jobId -> {

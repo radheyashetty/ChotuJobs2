@@ -55,6 +55,9 @@ public class ProfileFragment extends Fragment {
         String userId = auth.getCurrentUser().getUid();
         FirestoreService.getInstance().getUserProfile(userId, user -> {
             if (user != null) {
+                if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isEmpty()) {
+                    Glide.with(this).load(user.getProfileImageUrl()).into(binding.profileImageView);
+                }
                 binding.userNameTextView.setText(user.getName());
                 binding.userRoleTextView.setText("Role: " + user.getRole());
                 if (user.getEmail() != null) {

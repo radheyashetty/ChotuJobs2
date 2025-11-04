@@ -66,6 +66,9 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
                 User user = userMap.get(otherUserId);
                 if (user != null) {
                     binding.userNameTextView.setText(user.getName());
+                    if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isEmpty()) {
+                        Glide.with(itemView.getContext()).load(user.getProfileImageUrl()).into(binding.profileImageView);
+                    }
                 }
             }
 

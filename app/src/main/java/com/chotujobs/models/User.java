@@ -11,6 +11,7 @@ public class User {
     private List<String> skills;
     private String address;
     private int yearsOfExperience;
+    private String profileImageUrl;
 
     public User() {}
 
@@ -93,5 +94,13 @@ public class User {
 
     public void setYearsOfExperience(int yearsOfExperience) {
         this.yearsOfExperience = yearsOfExperience;
+    }
+
+    public String getProfileImageUrl() {
+        return profileImageUrl;
+    }
+
+    public void setProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
     }
 }

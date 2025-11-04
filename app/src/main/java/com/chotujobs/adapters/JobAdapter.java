@@ -71,17 +71,22 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
                     listener.onJobClick(jobList.get(position));
                 }
             });
+
             binding.messageButton.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION) {
+                    android.util.Log.d("JobAdapter", "Message button clicked at position " + position);
                     Job job = jobList.get(position);
                     String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
                     FirestoreService.getInstance().createChat(currentUserId, job.getContractorId(), chatId -> {
                         if (chatId != null) {
+                            android.util.Log.d("JobAdapter", "Chat created with id: " + chatId);
                             Intent intent = new Intent(itemView.getContext(), ChatActivity.class);
                             intent.putExtra("chatId", chatId);
                             intent.putExtra("receiverId", job.getContractorId());
                             itemView.getContext().startActivity(intent);
+                        } else {
+                            android.util.Log.e("JobAdapter", "Failed to create chat");
                         }
                     });
                 }
@@ -92,18 +97,35 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
             binding.titleTextView.setText(job.getTitle());
             binding.categoryTextView.setText(job.getCategory());
             binding.dateTextView.setText("Start: " + job.getStartDate());
+            binding.locationTextView.setText("Location: " + job.getLocation());
+
+            if (job.getRequirements() != null && !job.getRequirements().isEmpty()) {
+                binding.requirementsTextView.setText("Requirements: " + job.getRequirements());
+                binding.requirementsTextView.setVisibility(View.VISIBLE);
+            } else {
+                binding.requirementsTextView.setVisibility(View.GONE);
+            }
+
+            if (job.getBidLimit() > 0) {
+                binding.bidLimitTextView.setText("Expected Amount: " + job.getBidLimit());
+                binding.bidLimitTextView.setVisibility(View.VISIBLE);
+            } else {
+                binding.bidLimitTextView.setVisibility(View.GONE);
+            }
 
             if ("labourer".equals(userRole) || "agent".equals(userRole)) {
                 binding.applyButton.setVisibility(View.VISIBLE);
+                binding.messageButton.setVisibility(View.VISIBLE);
             } else {
                 binding.applyButton.setVisibility(View.GONE);
+                binding.messageButton.setVisibility(View.GONE);
             }
 
             if (job.getImageUrl() != null && !job.getImageUrl().isEmpty()) {
-                binding.imageView.setVisibility(View.VISIBLE);
                 Glide.with(itemView.getContext())
                         .load(job.getImageUrl())
                         .into(binding.imageView);
+                binding.imageView.setVisibility(View.VISIBLE);
             } else {
                 binding.imageView.setVisibility(View.GONE);
             }

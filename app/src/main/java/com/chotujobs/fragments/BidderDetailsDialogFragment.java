@@ -46,6 +46,9 @@ public class BidderDetailsDialogFragment extends DialogFragment {
         binding = DialogBidderDetailsBinding.inflate(requireActivity().getLayoutInflater());
 
         if (bidder != null) {
+            if (bidder.getProfileImageUrl() != null && !bidder.getProfileImageUrl().isEmpty()) {
+                Glide.with(this).load(bidder.getProfileImageUrl()).into(binding.profileImageView);
+            }
             binding.bidderNameTextView.setText(bidder.getName());
             if (bidder.getEmail() != null) {
                 binding.bidderContactTextView.setText(bidder.getEmail());

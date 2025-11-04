@@ -1,6 +1,7 @@
 package com.chotujobs;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -31,6 +32,7 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d("ChatActivity", "onCreate: activity launched");
         binding = ActivityChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
@@ -71,6 +73,7 @@ public class ChatActivity extends AppCompatActivity {
                 .orderBy("timestamp", Query.Direction.ASCENDING)
                 .addSnapshotListener((snapshots, e) -> {
                     if (e != null) {
+                        Log.e("ChatActivity", "Listen failed.", e);
                         return;
                     }
 
