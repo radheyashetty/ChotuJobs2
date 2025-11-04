@@ -146,6 +146,9 @@ public class FirestoreService {
         updates.put("skills", user.getSkills());
         updates.put("address", user.getAddress());
         updates.put("yearsOfExperience", user.getYearsOfExperience());
+        if (user.getProfileImageUrl() != null) {
+            updates.put("profileImageUrl", user.getProfileImageUrl());
+        }
 
         db.collection(COLLECTION_USERS).document(userId).update(updates)
                 .addOnSuccessListener(aVoid -> listener.onComplete(true))
@@ -343,6 +346,7 @@ public class FirestoreService {
 
     public void createChat(String userId1, String userId2, OnCompleteListener<String> listener) {
         String chatId = (userId1.compareTo(userId2) > 0) ? userId1 + userId2 : userId2 + userId1;
+        Log.d(TAG, "createChat: chatId=" + chatId);
         
         db.collection(COLLECTION_CHATS).document(chatId).get()
                 .addOnSuccessListener(documentSnapshot -> {
@@ -350,13 +354,23 @@ public class FirestoreService {
                         Map<String, Object> chatData = new HashMap<>();
                         chatData.put("userIds", Arrays.asList(userId1, userId2));
                         db.collection(COLLECTION_CHATS).document(chatId).set(chatData)
-                                .addOnSuccessListener(aVoid -> listener.onComplete(chatId))
-                                .addOnFailureListener(e -> listener.onComplete(null));
+                                .addOnSuccessListener(aVoid -> {
+                                    Log.d(TAG, "createChat: new chat created");
+                                    listener.onComplete(chatId);
+                                })
+                                .addOnFailureListener(e -> {
+                                    Log.e(TAG, "createChat: failed to create new chat", e);
+                                    listener.onComplete(null);
+                                });
                     } else {
+                        Log.d(TAG, "createChat: chat already exists");
                         listener.onComplete(chatId);
                     }
                 })
-                .addOnFailureListener(e -> listener.onComplete(null));
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "createChat: failed to get chat document", e);
+                    listener.onComplete(null);
+                });
     }
     
     public void sendMessage(String chatId, Message message, OnCompleteListener<Boolean> listener) {

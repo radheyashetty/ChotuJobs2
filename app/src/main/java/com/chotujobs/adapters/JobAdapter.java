@@ -75,14 +75,18 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
             binding.messageButton.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION) {
+                    android.util.Log.d("JobAdapter", "Message button clicked at position " + position);
                     Job job = jobList.get(position);
                     String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
                     FirestoreService.getInstance().createChat(currentUserId, job.getContractorId(), chatId -> {
                         if (chatId != null) {
+                            android.util.Log.d("JobAdapter", "Chat created with id: " + chatId);
                             Intent intent = new Intent(itemView.getContext(), ChatActivity.class);
                             intent.putExtra("chatId", chatId);
                             intent.putExtra("receiverId", job.getContractorId());
                             itemView.getContext().startActivity(intent);
+                        } else {
+                            android.util.Log.e("JobAdapter", "Failed to create chat");
                         }
                     });
                 }
@@ -118,10 +122,10 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
             }
 
             if (job.getImageUrl() != null && !job.getImageUrl().isEmpty()) {
-                binding.imageView.setVisibility(View.VISIBLE);
                 Glide.with(itemView.getContext())
                         .load(job.getImageUrl())
                         .into(binding.imageView);
+                binding.imageView.setVisibility(View.VISIBLE);
             } else {
                 binding.imageView.setVisibility(View.GONE);
             }
