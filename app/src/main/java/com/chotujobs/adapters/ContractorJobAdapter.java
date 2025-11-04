@@ -67,10 +67,10 @@ public class ContractorJobAdapter extends RecyclerView.Adapter<ContractorJobAdap
             binding.statusTextView.setText("Status: " + job.getStatus().toUpperCase());
             binding.dateTextView.setText("Start: " + job.getStartDate());
 
-            if (job.getImagePath() != null && !job.getImagePath().isEmpty()) {
+            if (job.getImageUrl() != null && !job.getImageUrl().isEmpty()) {
                 binding.imageView.setVisibility(View.VISIBLE);
                 Glide.with(itemView.getContext())
-                        .load(Uri.parse(job.getImagePath()))
+                        .load(job.getImageUrl())
                         .into(binding.imageView);
             } else {
                 binding.imageView.setVisibility(View.GONE);
