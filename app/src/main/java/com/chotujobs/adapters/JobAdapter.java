@@ -103,7 +103,7 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
             }
 
             if (job.getBidLimit() > 0) {
-                binding.bidLimitTextView.setText("Bid Limit: " + job.getBidLimit());
+                binding.bidLimitTextView.setText("Expected Amount: " + job.getBidLimit());
                 binding.bidLimitTextView.setVisibility(View.VISIBLE);
             } else {
                 binding.bidLimitTextView.setVisibility(View.GONE);

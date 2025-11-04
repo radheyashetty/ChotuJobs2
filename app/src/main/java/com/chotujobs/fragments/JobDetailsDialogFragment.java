@@ -79,7 +79,7 @@ public class JobDetailsDialogFragment extends DialogFragment {
                         "Start Date: " + job.getStartDate() + "\n" +
                         "Location: " + job.getLocation() + "\n" +
                         "Requirements: " + job.getRequirements() + "\n" +
-                        "Bid Limit: " + job.getBidLimit();
+                        "Expected Amount: " + job.getBidLimit();
                 binding.jobDetailsTextView.setText(jobDetails);
 
                 AlertDialog dialog = (AlertDialog) getDialog();
