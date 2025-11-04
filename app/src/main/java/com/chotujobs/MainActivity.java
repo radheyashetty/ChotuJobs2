@@ -36,14 +36,16 @@ public class MainActivity extends AppCompatActivity {
         prefs = getSharedPreferences("chotujobs_prefs", MODE_PRIVATE);
         userRole = prefs.getString("user_role", "");
 
-        if (userRole.isEmpty()) {
+        if (auth.getCurrentUser() == null || userRole.isEmpty()) {
             startActivity(new Intent(this, LoginActivity.class));
             finish();
             return;
         }
 
         setupBottomNav();
-        loadDefaultFragment();
+        if (savedInstanceState == null) {
+            loadDefaultFragment();
+        }
     }
 
     private void setupBottomNav() {

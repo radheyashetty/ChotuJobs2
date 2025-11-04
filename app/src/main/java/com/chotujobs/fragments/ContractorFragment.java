@@ -1,5 +1,6 @@
 package com.chotujobs.fragments;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -8,6 +9,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -29,6 +32,7 @@ public class ContractorFragment extends Fragment {
     private FirestoreService firestoreService;
     private String currentUserId;
     private List<Job> jobList;
+    private ActivityResultLauncher<Intent> createJobLauncher;
 
     @Nullable
     @Override
@@ -42,41 +46,41 @@ public class ContractorFragment extends Fragment {
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         jobList = new ArrayList<>();
-        adapter = new ContractorJobAdapter(jobList, job -> {
-            showJobDetails(job);
-        });
+        adapter = new ContractorJobAdapter(jobList, this::showJobDetails);
         binding.recyclerView.setAdapter(adapter);
+
+        createJobLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        loadJobs();
+                    }
+                });
 
         binding.btnCreateJob.setOnClickListener(v -> {
             Intent intent = new Intent(getContext(), CreateJobActivity.class);
-            startActivityForResult(intent, 100);
+            createJobLauncher.launch(intent);
         });
 
         loadJobs();
 
-        binding.swipeRefreshLayout.setOnRefreshListener(() -> loadJobs());
+        binding.swipeRefreshLayout.setOnRefreshListener(this::loadJobs);
 
         return binding.getRoot();
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 100) {
-            loadJobs();
-        }
     }
 
     private void loadJobs() {
         binding.swipeRefreshLayout.setRefreshing(true);
         firestoreService.getJobsByContractor(currentUserId, jobs -> {
-            binding.swipeRefreshLayout.setRefreshing(false);
-            if (jobs != null) {
-                jobList.clear();
-                jobList.addAll(jobs);
-                adapter.notifyDataSetChanged();
-            } else {
-                Toast.makeText(getContext(), "Error loading jobs", Toast.LENGTH_SHORT).show();
+            if (isAdded()) {
+                binding.swipeRefreshLayout.setRefreshing(false);
+                if (jobs != null) {
+                    jobList.clear();
+                    jobList.addAll(jobs);
+                    adapter.notifyDataSetChanged();
+                } else {
+                    Toast.makeText(getContext(), "Error loading jobs", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -84,8 +88,10 @@ public class ContractorFragment extends Fragment {
     private void showJobDetails(Job job) {
         JobDetailsDialogFragment dialog = JobDetailsDialogFragment.newInstance(job.getJobId());
         dialog.setJobClosedListener(() -> {
-            loadJobs();
-            Toast.makeText(getContext(), "Job closed successfully!", Toast.LENGTH_SHORT).show();
+            if(isAdded()){
+                loadJobs();
+                Toast.makeText(getContext(), "Job closed successfully!", Toast.LENGTH_SHORT).show();
+            }
         });
         dialog.show(getParentFragmentManager(), "job_details");
     }

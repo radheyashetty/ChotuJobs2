@@ -12,12 +12,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import com.bumptech.glide.Glide;
 import com.chotujobs.EditProfileActivity;
 import com.chotujobs.LoginActivity;
 import com.chotujobs.databinding.FragmentProfileBinding;
 import com.chotujobs.models.User;
 import com.chotujobs.services.FirestoreService;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class ProfileFragment extends Fragment {
 
@@ -52,9 +54,13 @@ public class ProfileFragment extends Fragment {
     }
 
     private void loadUserProfile() {
-        String userId = auth.getCurrentUser().getUid();
+        FirebaseUser currentUser = auth.getCurrentUser();
+        if (currentUser == null) {
+            return;
+        }
+        String userId = currentUser.getUid();
         FirestoreService.getInstance().getUserProfile(userId, user -> {
-            if (user != null) {
+            if (isAdded() && binding != null && user != null) {
                 if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isEmpty()) {
                     Glide.with(this).load(user.getProfileImageUrl()).into(binding.profileImageView);
                 }
@@ -83,10 +89,12 @@ public class ProfileFragment extends Fragment {
         editor.clear();
         editor.apply();
 
-        Toast.makeText(getContext(), "Logged out successfully", Toast.LENGTH_SHORT).show();
-        Intent intent = new Intent(getContext(), LoginActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        if (getContext() != null) {
+            Toast.makeText(getContext(), "Logged out successfully", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(getContext(), LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+        }
     }
 
     @Override

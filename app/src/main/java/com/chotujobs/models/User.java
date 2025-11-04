@@ -1,8 +1,11 @@
 package com.chotujobs.models;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import java.util.List;
 
-public class User {
+public class User implements Parcelable {
     private String userId;
     private String name;
     private String email;
@@ -26,6 +29,48 @@ public class User {
         this.phone = phone;
         this.role = role;
     }
+
+    protected User(Parcel in) {
+        userId = in.readString();
+        name = in.readString();
+        email = in.readString();
+        phone = in.readString();
+        role = in.readString();
+        skills = in.createStringArrayList();
+        address = in.readString();
+        yearsOfExperience = in.readInt();
+        profileImageUrl = in.readString();
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(userId);
+        dest.writeString(name);
+        dest.writeString(email);
+        dest.writeString(phone);
+        dest.writeString(role);
+        dest.writeStringList(skills);
+        dest.writeString(address);
+        dest.writeInt(yearsOfExperience);
+        dest.writeString(profileImageUrl);
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    public static final Creator<User> CREATOR = new Creator<User>() {
+        @Override
+        public User createFromParcel(Parcel in) {
+            return new User(in);
+        }
+
+        @Override
+        public User[] newArray(int size) {
+            return new User[size];
+        }
+    };
 
     public String getUserId() {
         return userId;

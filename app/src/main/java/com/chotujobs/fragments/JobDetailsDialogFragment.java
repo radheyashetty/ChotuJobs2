@@ -50,6 +50,10 @@ public class JobDetailsDialogFragment extends DialogFragment {
         if (getArguments() != null) {
             jobId = getArguments().getString("job_id");
         }
+        
+        if (getContext() == null) {
+            return super.onCreateDialog(savedInstanceState);
+        }
 
         if (jobId == null || jobId.isEmpty()) {
             dismiss();
@@ -64,14 +68,13 @@ public class JobDetailsDialogFragment extends DialogFragment {
         builder.setView(binding.getRoot())
                 .setNegativeButton("Close", null);
 
-        AlertDialog dialog = builder.create();
-
-        return dialog;
+        return builder.create();
     }
 
     private void loadJobAndBids() {
         binding.progressBar.setVisibility(View.VISIBLE);
         firestoreService.getJobById(jobId, job -> {
+            if (!isAdded()) return;
             if (job != null) {
                 currentJob = job;
                 binding.jobTitleTextView.setText(job.getTitle());
@@ -92,6 +95,7 @@ public class JobDetailsDialogFragment extends DialogFragment {
                 }
 
                 firestoreService.getBidsByJob(jobId, bids -> {
+                    if (!isAdded()) return;
                     if (bids != null) {
                         allBids = bids;
                         loadUsersAndDisplayBids();
@@ -105,12 +109,19 @@ public class JobDetailsDialogFragment extends DialogFragment {
     }
 
     private void loadUsersAndDisplayBids() {
+        if (allBids.isEmpty()) {
+            displayBids();
+            return;
+        }
+
         List<String> userIds = new ArrayList<>();
         for (Bid bid : allBids) {
             userIds.add(bid.getBidderId());
         }
 
         firestoreService.getUsersByIds(userIds, users -> {
+            if (!isAdded()) return;
+            userMap.clear();
             for (User user : users) {
                 userMap.put(user.getUserId(), user);
             }
@@ -119,13 +130,14 @@ public class JobDetailsDialogFragment extends DialogFragment {
     }
 
     private void displayBids() {
+        if (!isAdded()) return;
         binding.progressBar.setVisibility(View.GONE);
         if (allBids == null || allBids.isEmpty()) {
             binding.bidsListView.setAdapter(null);
             return;
         }
 
-        BidAdapter adapter = new BidAdapter(getContext(), allBids, userMap, new BidAdapter.OnBidActionClickListener() {
+        BidAdapter adapter = new BidAdapter(requireContext(), allBids, userMap, new BidAdapter.OnBidActionClickListener() {
             @Override
             public void onAcceptBidClick(Bid bid) {
                 showBidderDetailsDialog(bid);
@@ -140,6 +152,7 @@ public class JobDetailsDialogFragment extends DialogFragment {
     }
 
     private void showBidderDetailsDialog(Bid bid) {
+        if (!isAdded()) return;
         User bidder = userMap.get(bid.getBidderId());
         if (bidder != null) {
             BidderDetailsDialogFragment dialog = BidderDetailsDialogFragment.newInstance(bid, bidder);
@@ -149,13 +162,15 @@ public class JobDetailsDialogFragment extends DialogFragment {
     }
 
     private void showConfirmRejectDialog(Bid bid) {
-        new AlertDialog.Builder(getContext())
+        if (!isAdded()) return;
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Confirm Rejection")
                 .setMessage("Are you sure you want to reject this bid?")
                 .setPositiveButton("Yes", (dialog, which) -> {
                     firestoreService.updateBidStatus(jobId, bid.getBidId(), "rejected", success -> {
+                        if (!isAdded()) return;
                         if (success) {
-                            Toast.makeText(getContext(), "Bid rejected", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getContext(), "Bid rejected", Toast.LENGTH_short).show();
                             loadJobAndBids();
                         } else {
                             Toast.makeText(getContext(), "Error rejecting bid", Toast.LENGTH_SHORT).show();
@@ -167,13 +182,16 @@ public class JobDetailsDialogFragment extends DialogFragment {
     }
 
     private void showConfirmWinnerDialog(Bid bid) {
-        new AlertDialog.Builder(getContext())
+        if (!isAdded()) return;
+        new AlertDialog.Builder(requireContext())
                 .setTitle("Confirm Winner")
                 .setMessage("Mark this bid as winner? This will close the job.")
                 .setPositiveButton("Yes", (dialog, which) -> {
                     firestoreService.updateBidStatus(jobId, bid.getBidId(), "accepted", success -> {
+                        if (!isAdded()) return;
                         if (success) {
                             firestoreService.updateJobStatus(jobId, "closed", bid.getBidderId(), updateSuccess -> {
+                                if (!isAdded()) return;
                                 if (updateSuccess) {
                                     CSVExporter.exportJobToCSV(currentJob, bid, allBids, userMap, getContext());
                                     

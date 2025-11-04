@@ -4,12 +4,12 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.chotujobs.adapters.ChatsAdapter;
 import com.chotujobs.databinding.FragmentChatsBinding;
@@ -17,9 +17,8 @@ import com.chotujobs.models.Chat;
 import com.chotujobs.models.User;
 import com.chotujobs.services.FirestoreService;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentChange;
-import com.google.firebase.firestore.FieldPath;
-import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
@@ -64,9 +63,18 @@ public class ChatsFragment extends Fragment {
         userMap.clear();
         adapter.notifyDataSetChanged();
 
-        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            if (isAdded()) {
+                Toast.makeText(getContext(), "You need to be logged in to view chats.", Toast.LENGTH_SHORT).show();
+                binding.swipeRefreshLayout.setRefreshing(false);
+            }
+            return;
+        }
+        String currentUserId = currentUser.getUid();
         chatListener = firestoreService.getChatsForUser(currentUserId)
                 .addSnapshotListener((snapshots, e) -> {
+                    if (!isAdded()) return;
                     binding.swipeRefreshLayout.setRefreshing(false);
                     if (e != null) {
                         return;
@@ -88,6 +96,7 @@ public class ChatsFragment extends Fragment {
 
                     if(!userIds.isEmpty()){
                         firestoreService.getUsersByIds(userIds, users -> {
+                            if (!isAdded()) return;
                             for (User user : users) {
                                 userMap.put(user.getUserId(), user);
                             }
@@ -100,6 +109,9 @@ public class ChatsFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        if (chatListener != null) {
+            chatListener.remove();
+        }
         binding = null;
     }
 }

@@ -1,14 +1,23 @@
 package com.chotujobs;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.bumptech.glide.Glide;
 import com.chotujobs.databinding.ActivityEditProfileBinding;
 import com.chotujobs.models.User;
 import com.chotujobs.services.FirestoreService;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 
 import java.util.Arrays;
 import java.util.List;
@@ -19,6 +28,7 @@ public class EditProfileActivity extends AppCompatActivity {
     private FirestoreService firestoreService;
     private String userId;
     private Uri selectedImageUri;
+    private ActivityResultLauncher<Intent> imagePickerLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,21 +41,21 @@ public class EditProfileActivity extends AppCompatActivity {
 
         loadUserProfile();
 
+        imagePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        selectedImageUri = result.getData().getData();
+                        binding.profileImageView.setImageURI(selectedImageUri);
+                    }
+                });
+
         binding.btnSave.setOnClickListener(v -> saveUserProfile());
 
         binding.btnChangeProfileImage.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            startActivityForResult(intent, 101);
+            imagePickerLauncher.launch(intent);
         });
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 101 && resultCode == RESULT_OK && data != null) {
-            selectedImageUri = data.getData();
-            binding.profileImageView.setImageURI(selectedImageUri);
-        }
     }
 
     private void uploadImage(Uri imageUri, OnImageUploadListener listener) {

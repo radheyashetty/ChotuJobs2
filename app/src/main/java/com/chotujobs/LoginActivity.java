@@ -15,6 +15,7 @@ import com.chotujobs.services.FirestoreService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
+import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 
 import java.util.concurrent.TimeUnit;
 
@@ -118,8 +119,12 @@ public class LoginActivity extends AppCompatActivity {
                         String uid = auth.getCurrentUser().getUid();
                         fetchUserProfileAndNavigate(uid);
                     } else {
-                        Log.w(TAG, "Login failed, attempting to create user", task.getException());
-                        promptForRole(null);
+                        if (task.getException() instanceof FirebaseAuthUserCollisionException) {
+                            Toast.makeText(this, "Email already in use.", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Log.w(TAG, "Login failed, attempting to create user", task.getException());
+                            promptForRole(email, password);
+                        }
                     }
                 });
     }
@@ -196,24 +201,20 @@ public class LoginActivity extends AppCompatActivity {
                 editor.apply();
                 navigateToMain();
             } else {
-                promptForRole(uid);
+                promptForRole(null, null);
             }
         });
     }
 
-    private void promptForRole(String uid) {
-        // Hide all input fields to show a clean role selection UI
+    private void promptForRole(String email, String password) {
         binding.emailFields.setVisibility(View.GONE);
         binding.phoneFields.setVisibility(View.GONE);
-
         binding.roleSpinner.setVisibility(View.VISIBLE);
         binding.btnAction.setText("Create Account");
         binding.btnAction.setEnabled(true);
         binding.btnAction.setOnClickListener(v -> {
             String role = binding.roleSpinner.getSelectedItem().toString().toLowerCase();
             if (isEmailLogin) {
-                String email = binding.emailEditText.getText().toString().trim();
-                String password = binding.passwordEditText.getText().toString().trim();
                 auth.createUserWithEmailAndPassword(email, password)
                         .addOnCompleteListener(this, task -> {
                             if (task.isSuccessful()) {
@@ -225,6 +226,7 @@ public class LoginActivity extends AppCompatActivity {
                             }
                         });
             } else {
+                String uid = auth.getCurrentUser().getUid();
                 User user = new User(auth.getCurrentUser().getPhoneNumber(), auth.getCurrentUser().getPhoneNumber(), role, true);
                 createUserProfile(user, uid, role);
             }

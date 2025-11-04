@@ -60,7 +60,7 @@ public class BidDialogFragment extends DialogFragment {
             binding.labourerLabel.setVisibility(View.GONE);
         }
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setView(binding.getRoot())
                 .setTitle("Place Bid")
                 .setPositiveButton("Submit", (dialog, which) -> handleBidSubmit())
@@ -71,7 +71,7 @@ public class BidDialogFragment extends DialogFragment {
 
     private void setupLabourerSpinner() {
         firestoreService.getUsersByRole("labour", users -> {
-            if (users != null && !users.isEmpty()) {
+            if (getContext() != null && users != null && !users.isEmpty()) {
                 ArrayAdapter<User> adapter = new ArrayAdapter<>(
                         getContext(), android.R.layout.simple_spinner_item, users);
                 adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -81,6 +81,9 @@ public class BidDialogFragment extends DialogFragment {
     }
 
     private void handleBidSubmit() {
+        if (getContext() == null) {
+            return;
+        }
         try {
             String amountStr = binding.bidAmountEditText.getText().toString().trim();
             if (amountStr.isEmpty()) {

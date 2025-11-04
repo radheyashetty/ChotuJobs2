@@ -12,6 +12,7 @@ import com.chotujobs.databinding.ActivityChatBinding;
 import com.chotujobs.models.Message;
 import com.chotujobs.services.FirestoreService;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
@@ -56,7 +57,12 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-        String senderId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
+            Toast.makeText(this, "You must be logged in to send messages", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String senderId = currentUser.getUid();
         Message message = new Message(senderId, receiverId, messageText);
 
         firestoreService.sendMessage(chatId, message, success -> {
@@ -69,6 +75,10 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void listenForMessages() {
+        if (chatId == null) {
+            Log.e("ChatActivity", "Chat ID is null, cannot listen for messages.");
+            return;
+        }
         messageListener = firestoreService.getMessages(chatId)
                 .orderBy("timestamp", Query.Direction.ASCENDING)
                 .addSnapshotListener((snapshots, e) -> {
@@ -89,8 +99,8 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
+    protected void onDestroy() {
+        super.onDestroy();
         if (messageListener != null) {
             messageListener.remove();
         }

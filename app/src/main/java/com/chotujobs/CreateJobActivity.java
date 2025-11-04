@@ -9,7 +9,8 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
-import androidx.annotation.Nullable;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.chotujobs.databinding.ActivityCreateJobBinding;
@@ -31,8 +32,7 @@ public class CreateJobActivity extends AppCompatActivity {
     private String contractorId;
     private Uri selectedImageUri = null;
     private Calendar calendar;
-
-    private static final int PICK_IMAGE_REQUEST = 103;
+    private ActivityResultLauncher<Intent> imagePickerLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +43,16 @@ public class CreateJobActivity extends AppCompatActivity {
         firestoreService = FirestoreService.getInstance();
         contractorId = getSharedPreferences("chotujobs_prefs", 0).getString("user_id", "");
         calendar = Calendar.getInstance();
+
+        imagePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        selectedImageUri = result.getData().getData();
+                        binding.imageView.setImageURI(selectedImageUri);
+                        binding.imageView.setVisibility(View.VISIBLE);
+                    }
+                });
 
         setupCategorySpinner();
         setupDatePicker();
@@ -88,23 +98,10 @@ public class CreateJobActivity extends AppCompatActivity {
     private void setupListeners() {
         binding.addImageButton.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            startActivityForResult(intent, PICK_IMAGE_REQUEST);
+            imagePickerLauncher.launch(intent);
         });
 
         binding.saveButton.setOnClickListener(v -> saveJob());
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (resultCode == RESULT_OK && data != null) {
-            if (requestCode == PICK_IMAGE_REQUEST) {
-                selectedImageUri = data.getData();
-                binding.imageView.setImageURI(selectedImageUri);
-                binding.imageView.setVisibility(View.VISIBLE);
-            }
-        }
     }
 
     private void saveJob() {

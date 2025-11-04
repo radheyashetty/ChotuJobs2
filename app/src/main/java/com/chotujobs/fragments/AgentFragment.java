@@ -55,13 +55,15 @@ public class AgentFragment extends Fragment {
     private void loadJobs() {
         binding.swipeRefreshLayout.setRefreshing(true);
         firestoreService.getAllActiveJobs(jobs -> {
-            binding.swipeRefreshLayout.setRefreshing(false);
-            if (jobs != null && !jobs.isEmpty()) {
-                jobList.clear();
-                jobList.addAll(jobs);
-                adapter.notifyDataSetChanged();
-            } else {
-                Toast.makeText(getContext(), "No active jobs available", Toast.LENGTH_SHORT).show();
+            if (isAdded()) {
+                binding.swipeRefreshLayout.setRefreshing(false);
+                if (jobs != null && !jobs.isEmpty()) {
+                    jobList.clear();
+                    jobList.addAll(jobs);
+                    adapter.notifyDataSetChanged();
+                } else {
+                    Toast.makeText(getContext(), "No active jobs available", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -69,8 +71,10 @@ public class AgentFragment extends Fragment {
     private void showBidDialog(Job job) {
         BidDialogFragment dialog = BidDialogFragment.newInstance(job.getJobId(), currentUserId, "agent");
         dialog.setBidListener(() -> {
-            loadJobs();
-            Toast.makeText(getContext(), "Bid placed successfully!", Toast.LENGTH_SHORT).show();
+            if (isAdded()) {
+                loadJobs();
+                Toast.makeText(getContext(), "Bid placed successfully!", Toast.LENGTH_SHORT).show();
+            }
         });
         dialog.show(getParentFragmentManager(), "bid_dialog");
     }

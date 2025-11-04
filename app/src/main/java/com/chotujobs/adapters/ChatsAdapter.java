@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.chotujobs.ChatActivity;
 import com.chotujobs.databinding.ItemChatBinding;
 import com.chotujobs.models.Chat;
