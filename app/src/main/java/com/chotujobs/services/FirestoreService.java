@@ -116,8 +116,14 @@ public class FirestoreService {
                 });
     }
     
-    public void updateUserProfile(String userId, String name, OnCompleteListener<Boolean> listener) {
-        db.collection(COLLECTION_USERS).document(userId).update("name", name)
+    public void updateUserProfile(String userId, User user, OnCompleteListener<Boolean> listener) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("name", user.getName());
+        updates.put("skills", user.getSkills());
+        updates.put("address", user.getAddress());
+        updates.put("yearsOfExperience", user.getYearsOfExperience());
+
+        db.collection(COLLECTION_USERS).document(userId).update(updates)
                 .addOnSuccessListener(aVoid -> listener.onComplete(true))
                 .addOnFailureListener(e -> listener.onComplete(false));
     }

@@ -57,11 +57,19 @@ public class ProfileFragment extends Fragment {
             if (user != null) {
                 binding.userNameTextView.setText(user.getName());
                 binding.userRoleTextView.setText("Role: " + user.getRole());
-                if(user.getEmail() != null){
+                if (user.getEmail() != null) {
                     binding.userContactTextView.setText(user.getEmail());
                 } else {
                     binding.userContactTextView.setText(user.getPhone());
                 }
+                binding.userAddressTextView.setText("Address: " + (user.getAddress() != null ? user.getAddress() : "Not set"));
+                if (user.getSkills() != null && !user.getSkills().isEmpty()) {
+                    binding.userSkillsTextView.setText("Skills: " + String.join(", ", user.getSkills()));
+                } else {
+                    binding.userSkillsTextView.setText("Skills: Not set");
+                }
+                binding.userExperienceTextView.setText("Experience: " + user.getYearsOfExperience() + " years");
+
             }
         });
     }
