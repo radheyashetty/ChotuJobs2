@@ -99,10 +99,10 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
                 binding.applyButton.setVisibility(View.GONE);
             }
 
-            if (job.getImagePath() != null && !job.getImagePath().isEmpty()) {
+            if (job.getImageUrl() != null && !job.getImageUrl().isEmpty()) {
                 binding.imageView.setVisibility(View.VISIBLE);
                 Glide.with(itemView.getContext())
-                        .load(Uri.parse(job.getImagePath()))
+                        .load(job.getImageUrl())
                         .into(binding.imageView);
             } else {
                 binding.imageView.setVisibility(View.GONE);
