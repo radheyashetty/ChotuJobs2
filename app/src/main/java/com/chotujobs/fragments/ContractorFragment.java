@@ -72,14 +72,16 @@ public class ContractorFragment extends Fragment {
     private void loadJobs() {
         binding.swipeRefreshLayout.setRefreshing(true);
         firestoreService.getJobsByContractor(currentUserId, jobs -> {
-            if (isAdded()) {
+            if (isAdded() && binding != null) {
                 binding.swipeRefreshLayout.setRefreshing(false);
                 if (jobs != null) {
                     jobList.clear();
                     jobList.addAll(jobs);
                     adapter.notifyDataSetChanged();
                 } else {
-                    Toast.makeText(getContext(), "Error loading jobs", Toast.LENGTH_SHORT).show();
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "Error loading jobs", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         });

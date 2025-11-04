@@ -65,16 +65,18 @@ public class ChatsFragment extends Fragment {
 
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser == null) {
-            if (isAdded()) {
+            if (isAdded() && getContext() != null) {
                 Toast.makeText(getContext(), "You need to be logged in to view chats.", Toast.LENGTH_SHORT).show();
-                binding.swipeRefreshLayout.setRefreshing(false);
+                if (binding != null) {
+                    binding.swipeRefreshLayout.setRefreshing(false);
+                }
             }
             return;
         }
         String currentUserId = currentUser.getUid();
         chatListener = firestoreService.getChatsForUser(currentUserId)
                 .addSnapshotListener((snapshots, e) -> {
-                    if (!isAdded()) return;
+                    if (!isAdded() || binding == null) return;
                     binding.swipeRefreshLayout.setRefreshing(false);
                     if (e != null) {
                         return;
