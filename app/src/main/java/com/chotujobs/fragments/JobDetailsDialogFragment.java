@@ -66,16 +66,6 @@ public class JobDetailsDialogFragment extends DialogFragment {
 
         AlertDialog dialog = builder.create();
 
-        binding.bidsListView.setOnItemClickListener((parent, view1, position, id) -> {
-            if (currentJob != null && "active".equals(currentJob.getStatus())) {
-                Bid bid = allBids.get(position);
-                User bidder = userMap.get(bid.getBidderId());
-                if(bidder != null){
-                    showBidderDetailsDialog(bid, bidder);
-                }
-            }
-        });
-
         return dialog;
     }
 
@@ -135,14 +125,45 @@ public class JobDetailsDialogFragment extends DialogFragment {
             return;
         }
 
-        BidAdapter adapter = new BidAdapter(getContext(), allBids, userMap);
+        BidAdapter adapter = new BidAdapter(getContext(), allBids, userMap, new BidAdapter.OnBidActionClickListener() {
+            @Override
+            public void onAcceptBidClick(Bid bid) {
+                showBidderDetailsDialog(bid);
+            }
+
+            @Override
+            public void onRejectBidClick(Bid bid) {
+                showConfirmRejectDialog(bid);
+            }
+        });
         binding.bidsListView.setAdapter(adapter);
     }
 
-    private void showBidderDetailsDialog(Bid bid, User bidder) {
-        BidderDetailsDialogFragment dialog = BidderDetailsDialogFragment.newInstance(bid, bidder);
-        dialog.setOnWinnerSelectedListener(this::showConfirmWinnerDialog);
-        dialog.show(getParentFragmentManager(), "bidder_details_dialog");
+    private void showBidderDetailsDialog(Bid bid) {
+        User bidder = userMap.get(bid.getBidderId());
+        if (bidder != null) {
+            BidderDetailsDialogFragment dialog = BidderDetailsDialogFragment.newInstance(bid, bidder);
+            dialog.setOnWinnerSelectedListener(this::showConfirmWinnerDialog);
+            dialog.show(getParentFragmentManager(), "bidder_details_dialog");
+        }
+    }
+
+    private void showConfirmRejectDialog(Bid bid) {
+        new AlertDialog.Builder(getContext())
+                .setTitle("Confirm Rejection")
+                .setMessage("Are you sure you want to reject this bid?")
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    firestoreService.updateBidStatus(jobId, bid.getBidId(), "rejected", success -> {
+                        if (success) {
+                            Toast.makeText(getContext(), "Bid rejected", Toast.LENGTH_SHORT).show();
+                            loadJobAndBids();
+                        } else {
+                            Toast.makeText(getContext(), "Error rejecting bid", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void showConfirmWinnerDialog(Bid bid) {
@@ -150,7 +171,7 @@ public class JobDetailsDialogFragment extends DialogFragment {
                 .setTitle("Confirm Winner")
                 .setMessage("Mark this bid as winner? This will close the job.")
                 .setPositiveButton("Yes", (dialog, which) -> {
-                    firestoreService.updateBidWinner(jobId, bid.getBidId(), success -> {
+                    firestoreService.updateBidStatus(jobId, bid.getBidId(), "accepted", success -> {
                         if (success) {
                             firestoreService.updateJobStatus(jobId, "closed", bid.getBidderId(), updateSuccess -> {
                                 if (updateSuccess) {

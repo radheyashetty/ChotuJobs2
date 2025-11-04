@@ -322,19 +322,19 @@ public class FirestoreService {
                 });
     }
 
-    public void updateBidWinner(String jobId, String bidId, OnCompleteListener<Boolean> listener) {
+    public void updateBidStatus(String jobId, String bidId, String status, OnCompleteListener<Boolean> listener) {
         Map<String, Object> updates = new HashMap<>();
-        updates.put("winnerFlag", 1);
+        updates.put("status", status);
 
         db.collection(COLLECTION_JOBS).document(jobId)
                 .collection(SUBCOLLECTION_BIDS).document(bidId)
                 .update(updates)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Bid marked as winner successfully");
+                    Log.d(TAG, "Bid status updated successfully");
                     listener.onComplete(true);
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error marking bid as winner", e);
+                    Log.e(TAG, "Error updating bid status", e);
                     listener.onComplete(false);
                 });
     }

@@ -19,10 +19,17 @@ import java.util.Map;
 public class BidAdapter extends ArrayAdapter<Bid> {
 
     private Map<String, User> userMap;
+    private OnBidActionClickListener listener;
 
-    public BidAdapter(@NonNull Context context, List<Bid> bids, Map<String, User> userMap) {
+    public interface OnBidActionClickListener {
+        void onAcceptBidClick(Bid bid);
+        void onRejectBidClick(Bid bid);
+    }
+
+    public BidAdapter(@NonNull Context context, List<Bid> bids, Map<String, User> userMap, OnBidActionClickListener listener) {
         super(context, 0, bids);
         this.userMap = userMap;
+        this.listener = listener;
     }
 
     @NonNull
@@ -53,9 +60,30 @@ public class BidAdapter extends ArrayAdapter<Bid> {
 
             binding.bidAmountTextView.setText("Bid: ₹" + bid.getBidAmount());
 
-            if (bid.getWinnerFlag() == 1) {
-                binding.bidderNameTextView.append(" - WINNER");
+            binding.bidStatusTextView.setText("Status: " + bid.getStatus());
+
+            if ("accepted".equals(bid.getStatus())) {
+                binding.acceptBidButton.setVisibility(View.GONE);
+                binding.rejectBidButton.setVisibility(View.GONE);
+            } else if ("rejected".equals(bid.getStatus())) {
+                binding.acceptBidButton.setVisibility(View.GONE);
+                binding.rejectBidButton.setVisibility(View.GONE);
+            } else {
+                binding.acceptBidButton.setVisibility(View.VISIBLE);
+                binding.rejectBidButton.setVisibility(View.VISIBLE);
             }
+
+            binding.acceptBidButton.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onAcceptBidClick(bid);
+                }
+            });
+
+            binding.rejectBidButton.setOnClickListener(v -> {
+                if (listener != null) {
+                    listener.onRejectBidClick(bid);
+                }
+            });
         }
 
         return convertView;
