@@ -163,6 +163,7 @@ public class FirestoreService {
         jobData.put("location", job.getLocation());
         jobData.put("imagePath", job.getImagePath());
         jobData.put("status", "active");
+        jobData.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
 
         db.collection(COLLECTION_JOBS).add(jobData)
                 .addOnSuccessListener(documentReference -> {
