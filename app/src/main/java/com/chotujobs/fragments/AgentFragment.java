@@ -40,7 +40,7 @@ public class AgentFragment extends Fragment {
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         jobList = new ArrayList<>();
-        adapter = new JobAdapter(jobList, job -> {
+        adapter = new JobAdapter(jobList,currentUserId, job -> {
             showBidDialog(job);
         });
         binding.recyclerView.setAdapter(adapter);

@@ -9,6 +9,7 @@ public class Job {
     private String title;
     private String category;
     private String startDate;
+    private String imagePath;
     private String location; // Changed from GeoPoint to String
     private String imageUrl; // nullable - local path
     private String status; // "active" or "closed"
@@ -89,6 +90,13 @@ public class Job {
             return ((com.google.firebase.Timestamp) timestamp).toDate();
         }
         return null;
+    }
+    public String getImagePath() {
+        return imagePath;
+    }
+
+    public void setImagePath(String imagePath) {
+        this.imagePath = imagePath;
     }
 
     public void setTimestamp(Object timestamp) {
