@@ -15,6 +15,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.chotujobs.databinding.ActivityCreateJobBinding;
 import com.chotujobs.models.Job;
 import com.chotujobs.services.FirestoreService;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -27,7 +29,7 @@ public class CreateJobActivity extends AppCompatActivity {
     private ActivityCreateJobBinding binding;
     private FirestoreService firestoreService;
     private String contractorId;
-    private String selectedImagePath = null;
+    private Uri selectedImageUri = null;
     private Calendar calendar;
 
     private static final int PICK_IMAGE_REQUEST = 103;
@@ -98,9 +100,8 @@ public class CreateJobActivity extends AppCompatActivity {
 
         if (resultCode == RESULT_OK && data != null) {
             if (requestCode == PICK_IMAGE_REQUEST) {
-                Uri imageUri = data.getData();
-                selectedImagePath = imageUri.toString();
-                binding.imageView.setImageURI(imageUri);
+                selectedImageUri = data.getData();
+                binding.imageView.setImageURI(selectedImageUri);
                 binding.imageView.setVisibility(View.VISIBLE);
             }
         }
@@ -128,17 +129,32 @@ public class CreateJobActivity extends AppCompatActivity {
         binding.progressBar.setVisibility(View.VISIBLE);
         binding.saveButton.setEnabled(false);
 
-        createJobInFirestore(title, category, startDate, location);
+        if (selectedImageUri != null) {
+            uploadImage(selectedImageUri, (imageUrl) -> {
+                createJobInFirestore(title, category, startDate, location, imageUrl);
+            });
+        } else {
+            createJobInFirestore(title, category, startDate, location, null);
+        }
     }
 
-    private void createJobInFirestore(String title, String category, String startDate, String location) {
+    private void uploadImage(Uri imageUri, OnImageUploadListener listener) {
+        StorageReference storageRef = FirebaseStorage.getInstance().getReference().child("job_images/" + System.currentTimeMillis() + ".jpg");
+        storageRef.putFile(imageUri)
+                .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl()
+                        .addOnSuccessListener(uri -> listener.onSuccess(uri.toString()))
+                        .addOnFailureListener(e -> listener.onSuccess(null)))
+                .addOnFailureListener(e -> listener.onSuccess(null));
+    }
+
+    private void createJobInFirestore(String title, String category, String startDate, String location, String imageUrl) {
         Job job = new Job();
         job.setContractorId(contractorId);
         job.setTitle(title);
         job.setCategory(category);
         job.setStartDate(startDate);
         job.setLocation(location);
-        job.setImagePath(selectedImagePath);
+        job.setImageUrl(imageUrl);
         job.setStatus("active");
 
         firestoreService.createJob(job, jobId -> {
@@ -153,5 +169,9 @@ public class CreateJobActivity extends AppCompatActivity {
                 Toast.makeText(this, "Error creating job", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    interface OnImageUploadListener {
+        void onSuccess(String imageUrl);
     }
 }

@@ -10,7 +10,7 @@ public class Job {
     private String category;
     private String startDate;
     private String location; // Changed from GeoPoint to String
-    private String imagePath; // nullable - local path
+    private String imageUrl; // nullable - local path
     private String status; // "active" or "closed"
     private Object timestamp;
 
@@ -64,12 +64,12 @@ public class Job {
         this.location = location;
     }
 
-    public String getImagePath() {
-        return imagePath;
+    public String getImageUrl() {
+        return imageUrl;
     }
 
-    public void setImagePath(String imagePath) {
-        this.imagePath = imagePath;
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public String getStatus() {
