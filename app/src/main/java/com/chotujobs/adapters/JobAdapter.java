@@ -22,14 +22,16 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
 
     private List<Job> jobList;
     private OnJobClickListener listener;
+    private String userRole;
 
     public interface OnJobClickListener {
         void onJobClick(Job job);
     }
 
-    public JobAdapter(List<Job> jobList, OnJobClickListener listener) {
+    public JobAdapter(List<Job> jobList, String userRole, OnJobClickListener listener) {
         this.jobList = jobList;
         this.listener = listener;
+        this.userRole = userRole;
     }
 
     @NonNull
@@ -63,7 +65,12 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
                     listener.onJobClick(jobList.get(position));
                 }
             });
-
+            binding.applyButton.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION && listener != null) {
+                    listener.onJobClick(jobList.get(position));
+                }
+            });
             binding.messageButton.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION) {
@@ -85,6 +92,12 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
             binding.titleTextView.setText(job.getTitle());
             binding.categoryTextView.setText(job.getCategory());
             binding.dateTextView.setText("Start: " + job.getStartDate());
+
+            if ("labourer".equals(userRole) || "agent".equals(userRole)) {
+                binding.applyButton.setVisibility(View.VISIBLE);
+            } else {
+                binding.applyButton.setVisibility(View.GONE);
+            }
 
             if (job.getImagePath() != null && !job.getImagePath().isEmpty()) {
                 binding.imageView.setVisibility(View.VISIBLE);

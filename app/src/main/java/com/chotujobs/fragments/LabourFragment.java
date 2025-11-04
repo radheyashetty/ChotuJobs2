@@ -40,7 +40,7 @@ public class LabourFragment extends Fragment {
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         jobList = new ArrayList<>();
-        adapter = new JobAdapter(jobList, job -> {
+        adapter = new JobAdapter(jobList, "labourer", job -> {
             showBidDialog(job);
         });
         binding.recyclerView.setAdapter(adapter);
