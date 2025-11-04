@@ -9,7 +9,7 @@ public class Bid {
     private String bidderId; // The user who placed the bid (labourer or agent)
     private double bidAmount;
     private String labourerIdIfAgent; // nullable - only set if bidder is an agent
-    private int winnerFlag; // 0 or 1
+    private String status; // "pending", "accepted", "rejected"
     private @ServerTimestamp Date timestamp;
     
     public Bid() {}
@@ -54,12 +54,12 @@ public class Bid {
         this.bidAmount = bidAmount;
     }
     
-    public int getWinnerFlag() {
-        return winnerFlag;
+    public String getStatus() {
+        return status;
     }
-    
-    public void setWinnerFlag(int winnerFlag) {
-        this.winnerFlag = winnerFlag;
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public Date getTimestamp() {

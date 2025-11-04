@@ -14,6 +14,8 @@ public class Job {
     private String imageUrl; // nullable - local path
     private String status; // "active" or "closed"
     private Object timestamp;
+    private String requirements;
+    private int bidLimit;
 
     public Job() {}
 
@@ -101,5 +103,21 @@ public class Job {
 
     public void setTimestamp(Object timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public String getRequirements() {
+        return requirements;
+    }
+
+    public void setRequirements(String requirements) {
+        this.requirements = requirements;
+    }
+
+    public int getBidLimit() {
+        return bidLimit;
+    }
+
+    public void setBidLimit(int bidLimit) {
+        this.bidLimit = bidLimit;
     }
 }

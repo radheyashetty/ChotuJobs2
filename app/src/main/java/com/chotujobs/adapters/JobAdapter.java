@@ -71,6 +71,7 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
                     listener.onJobClick(jobList.get(position));
                 }
             });
+
             binding.messageButton.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION) {
@@ -92,11 +93,28 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
             binding.titleTextView.setText(job.getTitle());
             binding.categoryTextView.setText(job.getCategory());
             binding.dateTextView.setText("Start: " + job.getStartDate());
+            binding.locationTextView.setText("Location: " + job.getLocation());
+
+            if (job.getRequirements() != null && !job.getRequirements().isEmpty()) {
+                binding.requirementsTextView.setText("Requirements: " + job.getRequirements());
+                binding.requirementsTextView.setVisibility(View.VISIBLE);
+            } else {
+                binding.requirementsTextView.setVisibility(View.GONE);
+            }
+
+            if (job.getBidLimit() > 0) {
+                binding.bidLimitTextView.setText("Expected Amount: " + job.getBidLimit());
+                binding.bidLimitTextView.setVisibility(View.VISIBLE);
+            } else {
+                binding.bidLimitTextView.setVisibility(View.GONE);
+            }
 
             if ("labourer".equals(userRole) || "agent".equals(userRole)) {
                 binding.applyButton.setVisibility(View.VISIBLE);
+                binding.messageButton.setVisibility(View.VISIBLE);
             } else {
                 binding.applyButton.setVisibility(View.GONE);
+                binding.messageButton.setVisibility(View.GONE);
             }
 
             if (job.getImageUrl() != null && !job.getImageUrl().isEmpty()) {

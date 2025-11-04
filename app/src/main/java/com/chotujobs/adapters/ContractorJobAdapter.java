@@ -66,6 +66,7 @@ public class ContractorJobAdapter extends RecyclerView.Adapter<ContractorJobAdap
             binding.categoryTextView.setText(job.getCategory());
             binding.statusTextView.setText("Status: " + job.getStatus().toUpperCase());
             binding.dateTextView.setText("Start: " + job.getStartDate());
+            binding.locationTextView.setText("Location: " + job.getLocation());
 
             if (job.getImageUrl() != null && !job.getImageUrl().isEmpty()) {
                 binding.imageView.setVisibility(View.VISIBLE);
