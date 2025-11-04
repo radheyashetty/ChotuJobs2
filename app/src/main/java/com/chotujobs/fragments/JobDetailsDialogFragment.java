@@ -80,10 +80,17 @@ public class JobDetailsDialogFragment extends DialogFragment {
     }
 
     private void loadJobAndBids() {
+        binding.progressBar.setVisibility(View.VISIBLE);
         firestoreService.getJobById(jobId, job -> {
             if (job != null) {
                 currentJob = job;
                 binding.jobTitleTextView.setText(job.getTitle());
+                String jobDetails = "Category: " + job.getCategory() + "\n" +
+                        "Start Date: " + job.getStartDate() + "\n" +
+                        "Location: " + job.getLocation() + "\n" +
+                        "Requirements: " + job.getRequirements() + "\n" +
+                        "Bid Limit: " + job.getBidLimit();
+                binding.jobDetailsTextView.setText(jobDetails);
 
                 AlertDialog dialog = (AlertDialog) getDialog();
                 if (dialog != null) {
@@ -108,7 +115,12 @@ public class JobDetailsDialogFragment extends DialogFragment {
     }
 
     private void loadUsersAndDisplayBids() {
-        firestoreService.getAllUsers(users -> {
+        List<String> userIds = new ArrayList<>();
+        for (Bid bid : allBids) {
+            userIds.add(bid.getBidderId());
+        }
+
+        firestoreService.getUsersByIds(userIds, users -> {
             for (User user : users) {
                 userMap.put(user.getUserId(), user);
             }
@@ -117,6 +129,7 @@ public class JobDetailsDialogFragment extends DialogFragment {
     }
 
     private void displayBids() {
+        binding.progressBar.setVisibility(View.GONE);
         if (allBids == null || allBids.isEmpty()) {
             binding.bidsListView.setAdapter(null);
             return;

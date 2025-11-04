@@ -87,16 +87,12 @@ public class ChatsFragment extends Fragment {
                     }
 
                     if(!userIds.isEmpty()){
-                        FirebaseFirestore.getInstance().collection("users").whereIn(FieldPath.documentId(), userIds)
-                                .get().addOnSuccessListener(queryDocumentSnapshots -> {
-                                    for(DocumentChange dc : queryDocumentSnapshots.getDocumentChanges()){
-                                        if(dc.getType() == DocumentChange.Type.ADDED){
-                                            User user = dc.getDocument().toObject(User.class);
-                                            userMap.put(dc.getDocument().getId(), user);
-                                        }
-                                    }
-                                    adapter.notifyDataSetChanged();
-                                });
+                        firestoreService.getUsersByIds(userIds, users -> {
+                            for (User user : users) {
+                                userMap.put(user.getUserId(), user);
+                            }
+                            adapter.notifyDataSetChanged();
+                        });
                     }
                 });
     }

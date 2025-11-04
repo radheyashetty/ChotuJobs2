@@ -115,6 +115,30 @@ public class FirestoreService {
                     listener.onComplete(new ArrayList<>());
                 });
     }
+
+    public void getUsersByIds(List<String> userIds, OnCompleteListener<List<User>> listener) {
+        if (userIds == null || userIds.isEmpty()) {
+            listener.onComplete(new ArrayList<>());
+            return;
+        }
+
+        db.collection(COLLECTION_USERS).whereIn(com.google.firebase.firestore.FieldPath.documentId(), userIds).get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<User> users = new ArrayList<>();
+                    for (var document : queryDocumentSnapshots.getDocuments()) {
+                        User user = document.toObject(User.class);
+                        if (user != null) {
+                            user.setUserId(document.getId());
+                            users.add(user);
+                        }
+                    }
+                    listener.onComplete(users);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error getting users by ids", e);
+                    listener.onComplete(new ArrayList<>());
+                });
+    }
     
     public void updateUserProfile(String userId, User user, OnCompleteListener<Boolean> listener) {
         Map<String, Object> updates = new HashMap<>();
@@ -162,6 +186,8 @@ public class FirestoreService {
         jobData.put("startDate", job.getStartDate());
         jobData.put("location", job.getLocation());
         jobData.put("imagePath", job.getImagePath());
+        jobData.put("requirements", job.getRequirements());
+        jobData.put("bidLimit", job.getBidLimit());
         jobData.put("status", "active");
         jobData.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
 
@@ -261,6 +287,7 @@ public class FirestoreService {
         bidData.put("bidAmount", bid.getBidAmount());
         bidData.put("labourerIdIfAgent", bid.getLabourerIdIfAgent());
         bidData.put("status", "pending");
+        bidData.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
 
         db.collection(COLLECTION_JOBS).document(bid.getJobId())
                 .collection(SUBCOLLECTION_BIDS).add(bidData)
