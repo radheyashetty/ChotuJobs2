@@ -333,12 +333,20 @@ public class FirestoreService {
     }
     
     public void sendMessage(String chatId, Message message, OnCompleteListener<Boolean> listener) {
-        db.collection(COLLECTION_CHATS).document(chatId)
-                .collection(SUBCOLLECTION_MESSAGES).add(message)
-                .addOnSuccessListener(documentReference -> {
+        DocumentReference messageRef = db.collection(COLLECTION_CHATS).document(chatId)
+                .collection(SUBCOLLECTION_MESSAGES).document();
+
+        Map<String, Object> messageData = new HashMap<>();
+        messageData.put("senderId", message.getSenderId());
+        messageData.put("receiverId", message.getReceiverId());
+        messageData.put("message", message.getMessage());
+        messageData.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
+
+        messageRef.set(messageData)
+                .addOnSuccessListener(aVoid -> {
                     Map<String, Object> chatUpdates = new HashMap<>();
                     chatUpdates.put("lastMessage", message.getMessage());
-                    chatUpdates.put("lastMessageTimestamp", System.currentTimeMillis());
+                    chatUpdates.put("lastMessageTimestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
                     db.collection(COLLECTION_CHATS).document(chatId).update(chatUpdates);
                     listener.onComplete(true);
                 })

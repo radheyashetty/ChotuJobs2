@@ -15,6 +15,7 @@ import com.chotujobs.fragments.ContractorFragment;
 import com.chotujobs.fragments.LabourFragment;
 import com.chotujobs.fragments.ProfileFragment;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -28,6 +29,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true);
 
         auth = FirebaseAuth.getInstance();
         prefs = getSharedPreferences("chotujobs_prefs", MODE_PRIVATE);

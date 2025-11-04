@@ -12,6 +12,7 @@ import com.chotujobs.models.Message;
 import com.chotujobs.services.FirestoreService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentChange;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ public class ChatActivity extends AppCompatActivity {
     private FirestoreService firestoreService;
     private String chatId;
     private String receiverId;
+    private ListenerRegistration messageListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,7 +67,7 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void listenForMessages() {
-        firestoreService.getMessages(chatId)
+        messageListener = firestoreService.getMessages(chatId)
                 .orderBy("timestamp", Query.Direction.ASCENDING)
                 .addSnapshotListener((snapshots, e) -> {
                     if (e != null) {
@@ -81,5 +83,13 @@ public class ChatActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (messageListener != null) {
+            messageListener.remove();
+        }
     }
 }
