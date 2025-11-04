@@ -12,7 +12,7 @@ public class Job {
     private String location; // Changed from GeoPoint to String
     private String imagePath; // nullable - local path
     private String status; // "active" or "closed"
-    private @ServerTimestamp Date timestamp;
+    private Object timestamp;
 
     public Job() {}
 
@@ -81,10 +81,17 @@ public class Job {
     }
 
     public Date getTimestamp() {
-        return timestamp;
+        if (timestamp instanceof Date) {
+            return (Date) timestamp;
+        } else if (timestamp instanceof Long) {
+            return new Date((Long) timestamp);
+        } else if (timestamp instanceof com.google.firebase.Timestamp) {
+            return ((com.google.firebase.Timestamp) timestamp).toDate();
+        }
+        return null;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(Object timestamp) {
         this.timestamp = timestamp;
     }
 }
