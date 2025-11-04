@@ -9,10 +9,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
 import com.chotujobs.databinding.ActivityMainBinding;
-import com.chotujobs.fragments.AgentFragment;
 import com.chotujobs.fragments.ChatsFragment;
 import com.chotujobs.fragments.ContractorFragment;
-import com.chotujobs.fragments.LabourFragment;
+import com.chotujobs.fragments.JobsListFragment;
 import com.chotujobs.fragments.ProfileFragment;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
@@ -61,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
             Fragment selectedFragment = null;
             int itemId = item.getItemId();
             if (itemId == R.id.nav_jobs) {
-                selectedFragment = "agent".equals(userRole) ? new AgentFragment() : new LabourFragment();
+                selectedFragment = JobsListFragment.newInstance(userRole);
             } else if (itemId == R.id.nav_my_jobs) {
                 selectedFragment = new ContractorFragment();
             } else if (itemId == R.id.nav_messages) {
@@ -79,11 +78,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadDefaultFragment() {
-        Fragment defaultFragment = new LabourFragment();
-        if ("agent".equals(userRole)) {
-            defaultFragment = new AgentFragment();
-        } else if ("contractor".equals(userRole)) {
+        Fragment defaultFragment;
+        if ("contractor".equals(userRole)) {
             defaultFragment = new ContractorFragment();
+        } else {
+            defaultFragment = JobsListFragment.newInstance(userRole);
         }
         loadFragment(defaultFragment);
     }

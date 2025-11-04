@@ -9,11 +9,11 @@ public class Job {
     private String title;
     private String category;
     private String startDate;
-    private String imagePath;
     private String location; // Changed from GeoPoint to String
     private String imageUrl; // nullable - local path
     private String status; // "active" or "closed"
-    private Object timestamp;
+    @ServerTimestamp
+    private Date timestamp;
     private String requirements;
     private int bidLimit;
 
@@ -84,24 +84,10 @@ public class Job {
     }
 
     public Date getTimestamp() {
-        if (timestamp instanceof Date) {
-            return (Date) timestamp;
-        } else if (timestamp instanceof Long) {
-            return new Date((Long) timestamp);
-        } else if (timestamp instanceof com.google.firebase.Timestamp) {
-            return ((com.google.firebase.Timestamp) timestamp).toDate();
-        }
-        return null;
-    }
-    public String getImagePath() {
-        return imagePath;
+        return timestamp;
     }
 
-    public void setImagePath(String imagePath) {
-        this.imagePath = imagePath;
-    }
-
-    public void setTimestamp(Object timestamp) {
+    public void setTimestamp(Date timestamp) {
         this.timestamp = timestamp;
     }
 

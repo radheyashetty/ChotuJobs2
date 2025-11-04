@@ -64,6 +64,9 @@ public class FirestoreService {
             userData.put("phone", user.getPhone());
         }
         userData.put("role", user.getRole());
+        if (user.getProfileImageUrl() != null) {
+            userData.put("profileImageUrl", user.getProfileImageUrl());
+        }
 
         db.collection(COLLECTION_USERS).document(uid).set(userData)
                 .addOnSuccessListener(aVoid -> {
@@ -182,19 +185,8 @@ public class FirestoreService {
     // ========== JOB METHODS ==========
 
     public void createJob(Job job, OnCompleteListener<String> listener) {
-        Map<String, Object> jobData = new HashMap<>();
-        jobData.put("contractorId", job.getContractorId());
-        jobData.put("title", job.getTitle());
-        jobData.put("category", job.getCategory());
-        jobData.put("startDate", job.getStartDate());
-        jobData.put("location", job.getLocation());
-        jobData.put("imagePath", job.getImagePath());
-        jobData.put("requirements", job.getRequirements());
-        jobData.put("bidLimit", job.getBidLimit());
-        jobData.put("status", "active");
-        jobData.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
-
-        db.collection(COLLECTION_JOBS).add(jobData)
+        job.setStatus("active");
+        db.collection(COLLECTION_JOBS).add(job)
                 .addOnSuccessListener(documentReference -> {
                     Log.d(TAG, "Job created successfully: " + documentReference.getId());
                     listener.onComplete(documentReference.getId());

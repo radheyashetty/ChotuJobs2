@@ -13,25 +13,46 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.chotujobs.adapters.JobAdapter;
-import com.chotujobs.databinding.FragmentAgentBinding;
+import com.chotujobs.databinding.FragmentJobsListBinding;
 import com.chotujobs.models.Job;
 import com.chotujobs.services.FirestoreService;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class AgentFragment extends Fragment {
+public class JobsListFragment extends Fragment {
 
-    private FragmentAgentBinding binding;
+    private static final String ARG_USER_ROLE = "user_role";
+
+    private FragmentJobsListBinding binding;
     private JobAdapter adapter;
     private FirestoreService firestoreService;
     private String currentUserId;
     private List<Job> jobList;
+    private String userRole;
+
+    public static JobsListFragment newInstance(String userRole) {
+        JobsListFragment fragment = new JobsListFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_USER_ROLE, userRole);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            userRole = getArguments().getString(ARG_USER_ROLE, "labourer");
+        } else {
+            userRole = "labourer";
+        }
+    }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        binding = FragmentAgentBinding.inflate(inflater, container, false);
+        binding = FragmentJobsListBinding.inflate(inflater, container, false);
 
         firestoreService = FirestoreService.getInstance();
         SharedPreferences prefs = requireContext().getSharedPreferences("chotujobs_prefs", 0);
@@ -40,40 +61,46 @@ public class AgentFragment extends Fragment {
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
         jobList = new ArrayList<>();
-        adapter = new JobAdapter(jobList,currentUserId, job -> {
-            showBidDialog(job);
-        });
+        adapter = new JobAdapter(jobList, userRole, this::showBidDialog);
         binding.recyclerView.setAdapter(adapter);
 
         loadJobs();
 
-        binding.swipeRefreshLayout.setOnRefreshListener(() -> loadJobs());
+        binding.swipeRefreshLayout.setOnRefreshListener(this::loadJobs);
 
         return binding.getRoot();
     }
 
     private void loadJobs() {
+        if (binding == null) return;
         binding.swipeRefreshLayout.setRefreshing(true);
         firestoreService.getAllActiveJobs(jobs -> {
-            if (isAdded()) {
+            if (isAdded() && binding != null) {
                 binding.swipeRefreshLayout.setRefreshing(false);
                 if (jobs != null && !jobs.isEmpty()) {
                     jobList.clear();
                     jobList.addAll(jobs);
                     adapter.notifyDataSetChanged();
                 } else {
-                    Toast.makeText(getContext(), "No active jobs available", Toast.LENGTH_SHORT).show();
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "No active jobs available", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
         });
     }
 
     private void showBidDialog(Job job) {
-        BidDialogFragment dialog = BidDialogFragment.newInstance(job.getJobId(), currentUserId, "agent");
+        if (userRole == null) {
+            return;
+        }
+        BidDialogFragment dialog = BidDialogFragment.newInstance(job.getJobId(), currentUserId, userRole);
         dialog.setBidListener(() -> {
             if (isAdded()) {
                 loadJobs();
-                Toast.makeText(getContext(), "Bid placed successfully!", Toast.LENGTH_SHORT).show();
+                if (getContext() != null) {
+                    Toast.makeText(getContext(), "Bid placed successfully!", Toast.LENGTH_SHORT).show();
+                }
             }
         });
         dialog.show(getParentFragmentManager(), "bid_dialog");
