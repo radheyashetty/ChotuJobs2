@@ -1,6 +1,5 @@
 package com.chotujobs.models;
 
-import com.google.firebase.firestore.Exclude;
 import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;
 
@@ -8,7 +7,7 @@ public class Message {
     private String senderId;
     private String receiverId;
     private String message;
-    private Long timestamp;
+    private @ServerTimestamp Date timestamp;
 
     public Message() {}
 
@@ -42,20 +41,19 @@ public class Message {
         this.message = message;
     }
 
-    @ServerTimestamp
-    public Long getTimestamp() {
+    public Date getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(Long timestamp) {
+    public void setTimestamp(Date timestamp) {
         this.timestamp = timestamp;
     }
 
-    @Exclude
-    public Date getTimestampAsDate() {
-        if (timestamp == null) {
-            return null;
+    public void setTimestamp(Long timestamp) {
+        if (timestamp != null) {
+            this.timestamp = new Date(timestamp);
+        } else {
+            this.timestamp = null;
         }
-        return new Date(timestamp);
     }
 }
