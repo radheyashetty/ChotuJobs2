@@ -19,6 +19,13 @@ import java.util.Map;
 public class CSVExporter {
 
     public static void exportJobToCSV(Job job, Bid winningBid, List<Bid> allBids, Map<String, User> userMap, Context context) {
+        if (job == null || winningBid == null) {
+            if (context != null) {
+                Toast.makeText(context, "Error: Job or winning bid data is missing.", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+
         StringBuilder csv = new StringBuilder();
         csv.append("Job ID,Title,Category,Start Date,Location,Winner,Winner Contact,Winner Bid Amount,Labourer\n");
 
@@ -54,21 +61,23 @@ public class CSVExporter {
         // All bids
         csv.append("All Bids\n");
         csv.append("Bidder,Bid Amount,Labourer\n");
-        for (Bid bid : allBids) {
-            User bidder = userMap.get(bid.getBidderId());
-            if (bidder != null) {
-                csv.append(bidder.getName()).append(",");
-            } else {
-                csv.append("N/A,");
-            }
-            csv.append(bid.getBidAmount()).append(",");
-            if (bid.getLabourerIdIfAgent() != null) {
-                User labourer = userMap.get(bid.getLabourerIdIfAgent());
-                if (labourer != null) {
-                    csv.append(labourer.getName());
+        if (allBids != null) {
+            for (Bid bid : allBids) {
+                User bidder = userMap.get(bid.getBidderId());
+                if (bidder != null) {
+                    csv.append(bidder.getName()).append(",");
+                } else {
+                    csv.append("N/A,");
                 }
+                csv.append(bid.getBidAmount()).append(",");
+                if (bid.getLabourerIdIfAgent() != null) {
+                    User labourer = userMap.get(bid.getLabourerIdIfAgent());
+                    if (labourer != null) {
+                        csv.append(labourer.getName());
+                    }
+                }
+                csv.append("\n");
             }
-            csv.append("\n");
         }
 
         // Timestamp

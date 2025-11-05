@@ -1,10 +1,8 @@
 package com.chotujobs.adapters;
 
+import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -15,6 +13,7 @@ import com.chotujobs.databinding.ItemJobBinding;
 import com.chotujobs.models.Job;
 import com.chotujobs.services.FirestoreService;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.List;
 
@@ -36,8 +35,8 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
 
     @NonNull
     @Override
-    public JobViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        ItemJobBinding binding = ItemJobBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
+    public JobViewHolder onCreateViewHolder(@NonNull android.view.ViewGroup parent, int viewType) {
+        ItemJobBinding binding = ItemJobBinding.inflate(android.view.LayoutInflater.from(parent.getContext()), parent, false);
         return new JobViewHolder(binding);
     }
 
@@ -58,6 +57,7 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
         public JobViewHolder(ItemJobBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
+            Context context = itemView.getContext();
 
             itemView.setOnClickListener(v -> {
                 int position = getAdapterPosition();
@@ -75,18 +75,21 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
             binding.messageButton.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION) {
-                    android.util.Log.d("JobAdapter", "Message button clicked at position " + position);
+                    FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                    if (currentUser == null) {
+                        Toast.makeText(context, "You must be logged in to send a message.", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
                     Job job = jobList.get(position);
-                    String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                    String currentUserId = currentUser.getUid();
                     FirestoreService.getInstance().createChat(currentUserId, job.getContractorId(), chatId -> {
                         if (chatId != null) {
-                            android.util.Log.d("JobAdapter", "Chat created with id: " + chatId);
-                            Intent intent = new Intent(itemView.getContext(), ChatActivity.class);
+                            Intent intent = new Intent(context, ChatActivity.class);
                             intent.putExtra("chatId", chatId);
                             intent.putExtra("receiverId", job.getContractorId());
-                            itemView.getContext().startActivity(intent);
+                            context.startActivity(intent);
                         } else {
-                            android.util.Log.e("JobAdapter", "Failed to create chat");
+                            Toast.makeText(context, "Failed to create or open chat.", Toast.LENGTH_SHORT).show();
                         }
                     });
                 }
@@ -101,33 +104,33 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
 
             if (job.getRequirements() != null && !job.getRequirements().isEmpty()) {
                 binding.requirementsTextView.setText("Requirements: " + job.getRequirements());
-                binding.requirementsTextView.setVisibility(View.VISIBLE);
+                binding.requirementsTextView.setVisibility(android.view.View.VISIBLE);
             } else {
-                binding.requirementsTextView.setVisibility(View.GONE);
+                binding.requirementsTextView.setVisibility(android.view.View.GONE);
             }
 
             if (job.getBidLimit() > 0) {
                 binding.bidLimitTextView.setText("Expected Amount: " + job.getBidLimit());
-                binding.bidLimitTextView.setVisibility(View.VISIBLE);
+                binding.bidLimitTextView.setVisibility(android.view.View.VISIBLE);
             } else {
-                binding.bidLimitTextView.setVisibility(View.GONE);
+                binding.bidLimitTextView.setVisibility(android.view.View.GONE);
             }
 
             if ("labourer".equals(userRole) || "agent".equals(userRole)) {
-                binding.applyButton.setVisibility(View.VISIBLE);
-                binding.messageButton.setVisibility(View.VISIBLE);
+                binding.applyButton.setVisibility(android.view.View.VISIBLE);
+                binding.messageButton.setVisibility(android.view.View.VISIBLE);
             } else {
-                binding.applyButton.setVisibility(View.GONE);
-                binding.messageButton.setVisibility(View.GONE);
+                binding.applyButton.setVisibility(android.view.View.GONE);
+                binding.messageButton.setVisibility(android.view.View.GONE);
             }
 
             if (job.getImageUrl() != null && !job.getImageUrl().isEmpty()) {
                 Glide.with(itemView.getContext())
                         .load(job.getImageUrl())
                         .into(binding.imageView);
-                binding.imageView.setVisibility(View.VISIBLE);
+                binding.imageView.setVisibility(android.view.View.VISIBLE);
             } else {
-                binding.imageView.setVisibility(View.GONE);
+                binding.imageView.setVisibility(android.view.View.GONE);
             }
         }
     }

@@ -10,8 +10,10 @@ import com.chotujobs.models.User;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.WriteBatch;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,20 +57,7 @@ public class FirestoreService {
     // ========== USER METHODS ==========
 
     public void createUserProfile(User user, String uid, OnCompleteListener<Boolean> listener) {
-        Map<String, Object> userData = new HashMap<>();
-        userData.put("name", user.getName());
-        if(user.getEmail() != null) {
-            userData.put("email", user.getEmail());
-        }
-        if(user.getPhone() != null){
-            userData.put("phone", user.getPhone());
-        }
-        userData.put("role", user.getRole());
-        if (user.getProfileImageUrl() != null) {
-            userData.put("profileImageUrl", user.getProfileImageUrl());
-        }
-
-        db.collection(COLLECTION_USERS).document(uid).set(userData)
+        db.collection(COLLECTION_USERS).document(uid).set(user)
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "User profile created successfully");
                     listener.onComplete(true);
@@ -142,25 +131,20 @@ public class FirestoreService {
                     listener.onComplete(new ArrayList<>());
                 });
     }
-    
+
     public void updateUserProfile(String userId, User user, OnCompleteListener<Boolean> listener) {
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("name", user.getName());
-        updates.put("skills", user.getSkills());
-        updates.put("address", user.getAddress());
-        updates.put("yearsOfExperience", user.getYearsOfExperience());
-        if (user.getProfileImageUrl() != null) {
-            updates.put("profileImageUrl", user.getProfileImageUrl());
-        }
-
-        db.collection(COLLECTION_USERS).document(userId).update(updates)
-                .addOnSuccessListener(aVoid -> listener.onComplete(true))
+        DocumentReference userRef = db.collection(COLLECTION_USERS).document(userId);
+        db.runTransaction(transaction -> {
+            transaction.update(userRef, "name", user.getName());
+            transaction.update(userRef, "skills", user.getSkills());
+            transaction.update(userRef, "address", user.getAddress());
+            transaction.update(userRef, "yearsOfExperience", user.getYearsOfExperience());
+            if (user.getProfileImageUrl() != null) {
+                transaction.update(userRef, "profileImageUrl", user.getProfileImageUrl());
+            }
+            return null;
+        }).addOnSuccessListener(aVoid -> listener.onComplete(true))
                 .addOnFailureListener(e -> listener.onComplete(false));
-    }
-
-    // Alias method for easier usage
-    public void getUser(String uid, OnCompleteListener<User> listener) {
-        getUserProfile(uid, listener);
     }
 
     public void getAllUsers(OnCompleteListener<List<User>> listener) {
@@ -186,6 +170,7 @@ public class FirestoreService {
 
     public void createJob(Job job, OnCompleteListener<String> listener) {
         job.setStatus("active");
+        job.setTimestamp(null); // Firestore will set this with @ServerTimestamp
         db.collection(COLLECTION_JOBS).add(job)
                 .addOnSuccessListener(documentReference -> {
                     Log.d(TAG, "Job created successfully: " + documentReference.getId());
@@ -277,15 +262,10 @@ public class FirestoreService {
     // ========== BID METHODS ==========
 
     public void createBid(Bid bid, OnCompleteListener<String> listener) {
-        Map<String, Object> bidData = new HashMap<>();
-        bidData.put("bidderId", bid.getBidderId());
-        bidData.put("bidAmount", bid.getBidAmount());
-        bidData.put("labourerIdIfAgent", bid.getLabourerIdIfAgent());
-        bidData.put("status", "pending");
-        bidData.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
-
+        bid.setStatus("pending");
+        bid.setTimestamp(null);
         db.collection(COLLECTION_JOBS).document(bid.getJobId())
-                .collection(SUBCOLLECTION_BIDS).add(bidData)
+                .collection(SUBCOLLECTION_BIDS).add(bid)
                 .addOnSuccessListener(documentReference -> {
                     Log.d(TAG, "Bid created successfully: " + documentReference.getId());
                     listener.onComplete(documentReference.getId());
@@ -318,12 +298,9 @@ public class FirestoreService {
     }
 
     public void updateBidStatus(String jobId, String bidId, String status, OnCompleteListener<Boolean> listener) {
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("status", status);
-
         db.collection(COLLECTION_JOBS).document(jobId)
                 .collection(SUBCOLLECTION_BIDS).document(bidId)
-                .update(updates)
+                .update("status", status)
                 .addOnSuccessListener(aVoid -> {
                     Log.d(TAG, "Bid status updated successfully");
                     listener.onComplete(true);
@@ -333,71 +310,55 @@ public class FirestoreService {
                     listener.onComplete(false);
                 });
     }
-    
+
     // ========== CHAT METHODS ==========
 
     public void createChat(String userId1, String userId2, OnCompleteListener<String> listener) {
         String chatId = (userId1.compareTo(userId2) > 0) ? userId1 + userId2 : userId2 + userId1;
-        Log.d(TAG, "createChat: chatId=" + chatId);
-        
-        db.collection(COLLECTION_CHATS).document(chatId).get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if(!documentSnapshot.exists()){
-                        Map<String, Object> chatData = new HashMap<>();
-                        chatData.put("userIds", Arrays.asList(userId1, userId2));
-                        db.collection(COLLECTION_CHATS).document(chatId).set(chatData)
-                                .addOnSuccessListener(aVoid -> {
-                                    Log.d(TAG, "createChat: new chat created");
-                                    listener.onComplete(chatId);
-                                })
-                                .addOnFailureListener(e -> {
-                                    Log.e(TAG, "createChat: failed to create new chat", e);
-                                    listener.onComplete(null);
-                                });
-                    } else {
-                        Log.d(TAG, "createChat: chat already exists");
-                        listener.onComplete(chatId);
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "createChat: failed to get chat document", e);
-                    listener.onComplete(null);
-                });
+        DocumentReference chatRef = db.collection(COLLECTION_CHATS).document(chatId);
+
+        chatRef.get().addOnSuccessListener(documentSnapshot -> {
+            if (!documentSnapshot.exists()) {
+                Map<String, Object> chatData = new HashMap<>();
+                chatData.put("userIds", Arrays.asList(userId1, userId2));
+                chatRef.set(chatData)
+                        .addOnSuccessListener(aVoid -> listener.onComplete(chatId))
+                        .addOnFailureListener(e -> listener.onComplete(null));
+            } else {
+                listener.onComplete(chatId);
+            }
+        }).addOnFailureListener(e -> listener.onComplete(null));
     }
-    
+
     public void sendMessage(String chatId, Message message, OnCompleteListener<Boolean> listener) {
+        WriteBatch batch = db.batch();
+
         DocumentReference messageRef = db.collection(COLLECTION_CHATS).document(chatId)
                 .collection(SUBCOLLECTION_MESSAGES).document();
+        batch.set(messageRef, message);
 
-        Map<String, Object> messageData = new HashMap<>();
-        messageData.put("senderId", message.getSenderId());
-        messageData.put("receiverId", message.getReceiverId());
-        messageData.put("message", message.getMessage());
-        messageData.put("timestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
+        DocumentReference chatRef = db.collection(COLLECTION_CHATS).document(chatId);
+        Map<String, Object> chatUpdates = new HashMap<>();
+        chatUpdates.put("lastMessage", message.getMessage());
+        chatUpdates.put("lastMessageTimestamp", FieldValue.serverTimestamp());
+        batch.update(chatRef, chatUpdates);
 
-        messageRef.set(messageData)
-                .addOnSuccessListener(aVoid -> {
-                    Map<String, Object> chatUpdates = new HashMap<>();
-                    chatUpdates.put("lastMessage", message.getMessage());
-                    chatUpdates.put("lastMessageTimestamp", com.google.firebase.firestore.FieldValue.serverTimestamp());
-                    db.collection(COLLECTION_CHATS).document(chatId).update(chatUpdates);
-                    listener.onComplete(true);
-                })
+        batch.commit()
+                .addOnSuccessListener(aVoid -> listener.onComplete(true))
                 .addOnFailureListener(e -> listener.onComplete(false));
     }
-    
+
     public Query getMessages(String chatId) {
         return db.collection(COLLECTION_CHATS).document(chatId)
                 .collection(SUBCOLLECTION_MESSAGES)
                 .orderBy("timestamp", Query.Direction.ASCENDING);
     }
-    
+
     public Query getChatsForUser(String userId) {
         return db.collection(COLLECTION_CHATS)
                 .whereArrayContains("userIds", userId)
                 .orderBy("lastMessageTimestamp", Query.Direction.DESCENDING);
     }
-
 
     // ========== CALLBACK INTERFACE ==========
 

@@ -170,7 +170,7 @@ public class JobDetailsDialogFragment extends DialogFragment {
                     firestoreService.updateBidStatus(jobId, bid.getBidId(), "rejected", success -> {
                         if (!isAdded()) return;
                         if (success) {
-                            Toast.makeText(getContext(), "Bid rejected", Toast.LENGTH_short).show();
+                            Toast.makeText(getContext(), "Bid rejected", Toast.LENGTH_SHORT).show();
                             loadJobAndBids();
                         } else {
                             Toast.makeText(getContext(), "Error rejecting bid", Toast.LENGTH_SHORT).show();

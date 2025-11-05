@@ -3,6 +3,7 @@ package com.chotujobs.adapters;
 import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -13,6 +14,7 @@ import com.chotujobs.databinding.ItemChatBinding;
 import com.chotujobs.models.Chat;
 import com.chotujobs.models.User;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.List;
 import java.util.Map;
@@ -54,7 +56,12 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
         }
 
         public void bind(Chat chat) {
-            String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+            if (currentUser == null) {
+                // Handle not logged in case
+                return;
+            }
+            String currentUserId = currentUser.getUid();
             String otherUserId = "";
             for (String userId : chat.getUserIds()) {
                 if (!userId.equals(currentUserId)) {
