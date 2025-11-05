@@ -111,4 +111,12 @@ public class Bid implements Parcelable {
     public void setTimestamp(Date timestamp) {
         this.timestamp = timestamp;
     }
+
+    public void setTimestamp(Long timestamp) {
+        if (timestamp != null) {
+            this.timestamp = new Date(timestamp);
+        } else {
+            this.timestamp = null;
+        }
+    }
 }
