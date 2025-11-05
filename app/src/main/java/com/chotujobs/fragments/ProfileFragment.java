@@ -63,6 +63,8 @@ public class ProfileFragment extends Fragment {
             if (isAdded() && binding != null && user != null) {
                 if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isEmpty()) {
                     Glide.with(this).load(user.getProfileImageUrl()).into(binding.profileImageView);
+                } else {
+                    Glide.with(this).load(com.chotujobs.R.drawable.ic_launcher_background).into(binding.profileImageView);
                 }
                 binding.userNameTextView.setText(user.getName());
                 binding.userRoleTextView.setText("Role: " + user.getRole());

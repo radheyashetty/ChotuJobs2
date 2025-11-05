@@ -134,16 +134,17 @@ public class FirestoreService {
 
     public void updateUserProfile(String userId, User user, OnCompleteListener<Boolean> listener) {
         DocumentReference userRef = db.collection(COLLECTION_USERS).document(userId);
-        db.runTransaction(transaction -> {
-            transaction.update(userRef, "name", user.getName());
-            transaction.update(userRef, "skills", user.getSkills());
-            transaction.update(userRef, "address", user.getAddress());
-            transaction.update(userRef, "yearsOfExperience", user.getYearsOfExperience());
-            if (user.getProfileImageUrl() != null) {
-                transaction.update(userRef, "profileImageUrl", user.getProfileImageUrl());
-            }
-            return null;
-        }).addOnSuccessListener(aVoid -> listener.onComplete(true))
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("name", user.getName());
+        updates.put("skills", user.getSkills());
+        updates.put("address", user.getAddress());
+        updates.put("yearsOfExperience", user.getYearsOfExperience());
+        if (user.getProfileImageUrl() != null) {
+            updates.put("profileImageUrl", user.getProfileImageUrl());
+        }
+
+        userRef.update(updates)
+                .addOnSuccessListener(aVoid -> listener.onComplete(true))
                 .addOnFailureListener(e -> listener.onComplete(false));
     }
 

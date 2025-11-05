@@ -28,6 +28,7 @@ public class LoginActivity extends AppCompatActivity {
     private ActivityLoginBinding binding;
     private String verificationId;
     private boolean isEmailLogin = true;
+    private boolean isWaitingForOtp = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,10 +94,10 @@ public class LoginActivity extends AppCompatActivity {
         if (isEmailLogin) {
             handleEmailLogin();
         } else {
-            if (binding.btnAction.getText().equals("Send OTP")) {
-                sendOtp();
-            } else {
+            if (isWaitingForOtp) {
                 verifyOtp();
+            } else {
+                sendOtp();
             }
         }
     }
@@ -121,6 +122,7 @@ public class LoginActivity extends AppCompatActivity {
                     } else {
                         if (task.getException() instanceof FirebaseAuthUserCollisionException) {
                             Toast.makeText(this, "Email already in use.", Toast.LENGTH_SHORT).show();
+                             binding.btnAction.setEnabled(true);
                         } else {
                             Log.w(TAG, "Login failed, attempting to create user", task.getException());
                             promptForRole(email, password);
@@ -159,6 +161,7 @@ public class LoginActivity extends AppCompatActivity {
                     @Override
                     public void onCodeSent(String verificationId, PhoneAuthProvider.ForceResendingToken token) {
                         LoginActivity.this.verificationId = verificationId;
+                        isWaitingForOtp = true;
                         binding.phoneNumberInputLayout.setVisibility(View.GONE);
                         binding.otpInputLayout.setVisibility(View.VISIBLE);
                         binding.btnAction.setText("Verify OTP");
@@ -187,6 +190,7 @@ public class LoginActivity extends AppCompatActivity {
                         fetchUserProfileAndNavigate(uid);
                     } else {
                         Log.w(TAG, "Login failed", task.getException());
+                        isWaitingForOtp = false;
                         Toast.makeText(this, "Authentication failed.", Toast.LENGTH_SHORT).show();
                     }
                 });
