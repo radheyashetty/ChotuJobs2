@@ -75,18 +75,14 @@ public class JobAdapter extends ListAdapter<Job, JobAdapter.JobViewHolder> {
             super(binding.getRoot());
             this.binding = binding;
 
-            itemView.setOnClickListener(v -> {
+            android.view.View.OnClickListener jobClickListener = v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION && listener != null) {
                     listener.onJobClick(getItem(position));
                 }
-            });
-            binding.applyButton.setOnClickListener(v -> {
-                int position = getAdapterPosition();
-                if (position != RecyclerView.NO_POSITION && listener != null) {
-                    listener.onJobClick(getItem(position));
-                }
-            });
+            };
+            itemView.setOnClickListener(jobClickListener);
+            binding.applyButton.setOnClickListener(jobClickListener);
 
             binding.messageButton.setOnClickListener(v -> {
                 int position = getAdapterPosition();

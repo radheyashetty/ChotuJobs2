@@ -7,7 +7,6 @@ import com.chotujobs.models.Job;
 import com.chotujobs.models.Message;
 import com.chotujobs.models.User;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -46,6 +45,9 @@ public class FirestoreService {
     }
 
     public String getCurrentUserId() {
+        if (auth == null) {
+            auth = FirebaseAuth.getInstance();
+        }
         com.google.firebase.auth.FirebaseUser user = auth.getCurrentUser();
         return user != null ? user.getUid() : null;
     }
@@ -172,7 +174,6 @@ public class FirestoreService {
         job.setTimestamp(System.currentTimeMillis());
         db.collection(COLLECTION_JOBS).add(job)
                 .addOnSuccessListener(documentReference -> {
-                    Log.d(TAG, "Job created successfully: " + documentReference.getId());
                     listener.onComplete(documentReference.getId());
                 })
                 .addOnFailureListener(e -> {
@@ -191,8 +192,8 @@ public class FirestoreService {
                     for (var document : queryDocumentSnapshots.getDocuments()) {
                         Job job = document.toObject(Job.class);
                         if (job != null) {
-                            job.setJobId(document.getId());
-                            jobs.add(job);
+                        job.setJobId(document.getId());
+                        jobs.add(job);
                         }
                     }
                     listener.onComplete(jobs);
@@ -213,8 +214,8 @@ public class FirestoreService {
                     for (var document : queryDocumentSnapshots.getDocuments()) {
                         Job job = document.toObject(Job.class);
                         if (job != null) {
-                            job.setJobId(document.getId());
-                            jobs.add(job);
+                        job.setJobId(document.getId());
+                        jobs.add(job);
                         }
                     }
                     listener.onComplete(jobs);
@@ -253,7 +254,6 @@ public class FirestoreService {
 
         db.collection(COLLECTION_JOBS).document(jobId).update(updates)
                 .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Job status updated successfully");
                     listener.onComplete(true);
                 })
                 .addOnFailureListener(e -> {
@@ -275,26 +275,17 @@ public class FirestoreService {
     }
     
     private boolean isValidBid(Bid bid) {
-        if (bid == null) return false;
-        if (isEmpty(bid.getJobId()) || isEmpty(bid.getBidderId())) {
-            Log.e(TAG, "Bid missing required fields");
+        if (bid == null || bid.getJobId() == null || bid.getJobId().isEmpty() || 
+            bid.getBidderId() == null || bid.getBidderId().isEmpty()) {
             return false;
         }
         if (bid.getBidAmount() <= 0) {
-            Log.e(TAG, "Bid amount must be greater than zero");
             return false;
         }
         String currentUserId = getCurrentUserId();
-        if (currentUserId == null || !currentUserId.equals(bid.getBidderId())) {
-            Log.e(TAG, "Bidder ID doesn't match authenticated user");
-            return false;
-        }
-        return true;
+        return currentUserId != null && currentUserId.equals(bid.getBidderId());
     }
     
-    private boolean isEmpty(String str) {
-        return str == null || str.isEmpty();
-    }
     
     private void checkJobThenCreateBid(Bid bid, OnCompleteListener<String> listener) {
         db.collection(COLLECTION_JOBS).document(bid.getJobId()).get()
@@ -331,10 +322,30 @@ public class FirestoreService {
                         listener.onComplete(null);
                         return;
                     }
-                    saveBidToFirestore(bid, listener);
+                    checkDuplicateBid(bid, listener);
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error checking user role", e);
+                    listener.onComplete(null);
+                });
+    }
+    
+    private void checkDuplicateBid(Bid bid, OnCompleteListener<String> listener) {
+        db.collection(COLLECTION_JOBS).document(bid.getJobId())
+                .collection(SUBCOLLECTION_BIDS)
+                .whereEqualTo("bidderId", bid.getBidderId())
+                .whereEqualTo("status", "pending")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        Log.e(TAG, "User already has a pending bid on this job");
+                        listener.onComplete(null);
+                        return;
+                    }
+                    saveBidToFirestore(bid, listener);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error checking for duplicate bid", e);
                     listener.onComplete(null);
                 });
     }
@@ -358,7 +369,6 @@ public class FirestoreService {
         db.collection(COLLECTION_JOBS).document(bid.getJobId())
                 .collection(SUBCOLLECTION_BIDS).add(bid)
                 .addOnSuccessListener(documentReference -> {
-                    Log.d(TAG, "Bid created: " + documentReference.getId());
                     listener.onComplete(documentReference.getId());
                 })
                 .addOnFailureListener(e -> {
@@ -383,9 +393,9 @@ public class FirestoreService {
                     for (var document : queryDocumentSnapshots.getDocuments()) {
                         Bid bid = document.toObject(Bid.class);
                         if (bid != null) {
-                            bid.setBidId(document.getId());
-                            bid.setJobId(jobId);
-                            bids.add(bid);
+                        bid.setBidId(document.getId());
+                        bid.setJobId(jobId);
+                        bids.add(bid);
                         } else {
                             Log.w(TAG, "Skipping null bid document: " + document.getId());
                         }
@@ -399,15 +409,73 @@ public class FirestoreService {
     }
 
     public void updateBidStatus(String jobId, String bidId, String status, OnCompleteListener<Boolean> listener) {
-        db.collection(COLLECTION_JOBS).document(jobId)
-                .collection(SUBCOLLECTION_BIDS).document(bidId)
-                .update("status", status)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Bid status updated successfully");
-                    listener.onComplete(true);
+        if (jobId == null || jobId.isEmpty() || bidId == null || bidId.isEmpty() || status == null || status.isEmpty()) {
+            Log.e(TAG, "Cannot update bid status: missing parameters. jobId=" + jobId + ", bidId=" + bidId + ", status=" + status);
+            listener.onComplete(false);
+            return;
+        }
+        
+        if (!status.equals("pending") && !status.equals("accepted") && !status.equals("rejected")) {
+            Log.e(TAG, "Invalid bid status: " + status);
+            listener.onComplete(false);
+            return;
+        }
+        
+        String currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            Log.e(TAG, "Cannot update bid status: user not authenticated");
+            listener.onComplete(false);
+            return;
+        }
+        
+        db.collection(COLLECTION_JOBS).document(jobId).get()
+                .addOnSuccessListener(jobDoc -> {
+                    if (!jobDoc.exists()) {
+                        Log.e(TAG, "Job does not exist: " + jobId);
+                        listener.onComplete(false);
+                        return;
+                    }
+                    
+                    String contractorId = jobDoc.getString("contractorId");
+                    if (contractorId == null) {
+                        Log.e(TAG, "Job has no contractorId field");
+                        listener.onComplete(false);
+                        return;
+                    }
+                    
+                    if (!contractorId.trim().equals(currentUserId.trim())) {
+                        Log.e(TAG, "Only job owner can update bid status");
+                        listener.onComplete(false);
+                        return;
+                    }
+                    
+                    db.collection(COLLECTION_JOBS).document(jobId)
+                            .collection(SUBCOLLECTION_BIDS).document(bidId).get()
+                            .addOnSuccessListener(bidDoc -> {
+                                if (!bidDoc.exists()) {
+                                    Log.e(TAG, "Bid does not exist: " + bidId);
+                                    listener.onComplete(false);
+                                    return;
+                                }
+                                
+                                db.collection(COLLECTION_JOBS).document(jobId)
+                                        .collection(SUBCOLLECTION_BIDS).document(bidId)
+                                        .update("status", status)
+                                        .addOnSuccessListener(aVoid -> {
+                                            listener.onComplete(true);
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Log.e(TAG, "Error updating bid status. jobId=" + jobId + ", bidId=" + bidId + ", status=" + status + ", error=" + e.getMessage(), e);
+                                            listener.onComplete(false);
+                                        });
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Error checking bid existence: " + bidId + ", error=" + e.getMessage(), e);
+                                listener.onComplete(false);
+                            });
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error updating bid status", e);
+                    Log.e(TAG, "Error checking job: " + jobId + ", error=" + e.getMessage(), e);
                     listener.onComplete(false);
                 });
     }
@@ -433,7 +501,6 @@ public class FirestoreService {
                 chatData.put("lastMessageTimestamp", FieldValue.serverTimestamp());
                 chatRef.set(chatData)
                         .addOnSuccessListener(aVoid -> {
-                            Log.d(TAG, "Chat created successfully: " + chatId);
                             // Wait a moment for Firestore to commit the chat document
                             // This ensures the security rules can read it before we send a message
                             new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
@@ -445,7 +512,6 @@ public class FirestoreService {
                             listener.onComplete(null);
                         });
             } else {
-                Log.d(TAG, "Chat already exists: " + chatId);
                 listener.onComplete(chatId);
             }
         }).addOnFailureListener(e -> {
@@ -480,7 +546,6 @@ public class FirestoreService {
 
         batch.commit()
                 .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "Message sent successfully to chat: " + chatId);
                     listener.onComplete(true);
                 })
                 .addOnFailureListener(e -> {
@@ -543,11 +608,6 @@ public class FirestoreService {
 
             // Send the message (chat is already committed from createChat)
             sendMessage(chatId, notificationMessage, success -> {
-                if (success) {
-                    Log.d(TAG, "Bid acceptance notification sent successfully to labourer: " + labourerId);
-                } else {
-                    Log.e(TAG, "Failed to send bid acceptance notification message");
-                }
                 if (listener != null) listener.onComplete(success);
             });
         });

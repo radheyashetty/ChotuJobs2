@@ -3,7 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="24dp">
+    android:padding="24dp"
+    android:background="@color/design_default_color_surface">
 
     <TextView
         android:id="@+id/titleTextView"
@@ -52,6 +53,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Login With Email"
+                android:textColor="@android:color/white"
+                android:background="@color/design_default_color_primary"
                 android:textSize="18sp"
                 android:padding="16dp"
                 style="@style/Widget.Material3.Button" />
@@ -61,6 +64,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Login With Phone / OTP"
+                android:textColor="@color/design_default_color_primary"
                 android:textSize="18sp"
                 android:padding="16dp"
                 android:layout_marginTop="16dp"
@@ -151,6 +155,8 @@
         android:layout_marginBottom="16dp"
         android:visibility="gone"
         android:entries="@array/roles"
+        android:popupBackground="@color/design_default_color_surface"
+        android:textColor="@color/design_default_color_on_surface"
         style="@style/Widget.AppCompat.Spinner.Underlined"
         app:layout_constraintTop_toBottomOf="@+id/viewFlipper"
         app:layout_constraintStart_toStartOf="parent"
@@ -160,6 +166,8 @@
         android:id="@+id/btnAction"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:textColor="@android:color/white"
+        android:background="@color/design_default_color_primary"
         android:textSize="18sp"
         android:padding="16dp"
         android:layout_marginTop="8dp"
@@ -173,6 +181,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Cancel"
+        android:textColor="@color/design_default_color_primary"
         android:layout_marginTop="8dp"
         style="@style/Widget.Material3.Button.OutlinedButton"
         app:layout_constraintTop_toBottomOf="@+id/btnAction"

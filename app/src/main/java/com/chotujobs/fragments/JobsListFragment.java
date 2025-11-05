@@ -57,14 +57,6 @@ public class JobsListFragment extends Fragment implements JobAdapter.OnJobClickL
 
         if (userRole == null || userRole.isEmpty()) {
             userRole = prefs.getString("user_role", "");
-            if ((userRole == null || userRole.isEmpty()) && currentUserId != null && !currentUserId.isEmpty()) {
-                firestoreService.getUserProfile(currentUserId, user -> {
-                    if (user != null && user.getRole() != null && adapter != null) {
-                        adapter.setUserRole(user.getRole());
-                        adapter.notifyDataSetChanged();
-                    }
-                });
-            }
         }
 
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -87,10 +79,6 @@ public class JobsListFragment extends Fragment implements JobAdapter.OnJobClickL
                 binding.swipeRefreshLayout.setRefreshing(false);
                 if (jobs != null && !jobs.isEmpty()) {
                     adapter.submitList(jobs);
-                } else {
-                    if (getContext() != null) {
-                        Toast.makeText(getContext(), "No active jobs available", Toast.LENGTH_SHORT).show();
-                    }
                 }
             }
         });

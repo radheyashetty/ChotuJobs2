@@ -10,19 +10,20 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.chotujobs.R;
 import com.chotujobs.models.Message;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
+import com.chotujobs.services.FirestoreService;
 
 import java.util.List;
 
 public class MessagesAdapter extends RecyclerView.Adapter<MessagesAdapter.MessageViewHolder> {
 
     private List<Message> messageList;
+    private String currentUserId;
     private static final int VIEW_TYPE_SENT = 1;
     private static final int VIEW_TYPE_RECEIVED = 2;
 
     public MessagesAdapter(List<Message> messageList) {
         this.messageList = messageList;
+        this.currentUserId = FirestoreService.getInstance().getCurrentUserId();
     }
 
     @Override
@@ -31,10 +32,9 @@ public class MessagesAdapter extends RecyclerView.Adapter<MessagesAdapter.Messag
             return VIEW_TYPE_RECEIVED;
         }
         Message message = messageList.get(position);
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        boolean isSentByMe = currentUser != null && message != null 
+        boolean isSentByMe = currentUserId != null && message != null 
                 && message.getSenderId() != null 
-                && message.getSenderId().equals(currentUser.getUid());
+                && message.getSenderId().equals(currentUserId);
         return isSentByMe ? VIEW_TYPE_SENT : VIEW_TYPE_RECEIVED;
     }
 

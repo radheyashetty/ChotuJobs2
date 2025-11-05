@@ -3,7 +3,6 @@ package com.chotujobs;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -11,7 +10,6 @@ import com.chotujobs.databinding.ActivityLoginBinding;
 import com.chotujobs.models.User;
 import com.chotujobs.services.FirestoreService;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
@@ -143,7 +141,6 @@ public class LoginActivity extends AppCompatActivity {
                     if (task.isSuccessful()) {
                         FirebaseUser user = auth.getCurrentUser();
                         if (user != null) {
-                            Log.d(TAG, "Login successful");
                             fetchUserProfileAndNavigate(user.getUid());
                         } else {
                             hideProgress();
@@ -151,12 +148,7 @@ public class LoginActivity extends AppCompatActivity {
                         }
                     } else {
                         hideProgress();
-                        if (task.getException() instanceof FirebaseAuthUserCollisionException) {
-                            Toast.makeText(this, "Email already in use.", Toast.LENGTH_SHORT).show();
-                        } else {
-                            Log.w(TAG, "Login failed, attempting to create user", task.getException());
-                            promptForRole(email, password);
-                        }
+                        promptForRole(email, password);
                     }
                 });
     }
@@ -183,7 +175,6 @@ public class LoginActivity extends AppCompatActivity {
 
                     @Override
                     public void onVerificationFailed(com.google.firebase.FirebaseException e) {
-                        Log.w(TAG, "onVerificationFailed", e);
                         Toast.makeText(LoginActivity.this, "Verification failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                         updateUi(UiState.PHONE_LOGIN);
                     }
@@ -214,7 +205,6 @@ public class LoginActivity extends AppCompatActivity {
                     if (task.isSuccessful()) {
                         FirebaseUser user = auth.getCurrentUser();
                         if (user != null) {
-                            Log.d(TAG, "Login successful");
                             fetchUserProfileAndNavigate(user.getUid());
                         } else {
                             hideProgress();
@@ -223,7 +213,6 @@ public class LoginActivity extends AppCompatActivity {
                         }
                     } else {
                         hideProgress();
-                        Log.w(TAG, "Login failed", task.getException());
                         Toast.makeText(this, "Authentication failed.", Toast.LENGTH_SHORT).show();
                         updateUi(UiState.PHONE_LOGIN);
                     }

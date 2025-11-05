@@ -86,7 +86,24 @@ public class CreateJobActivity extends AppCompatActivity {
         categories.add("Other");
 
         ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                this, android.R.layout.simple_spinner_item, categories);
+                this, android.R.layout.simple_spinner_item, categories) {
+            @Override
+            public android.view.View getView(int position, android.view.View convertView, android.view.ViewGroup parent) {
+                android.view.View view = super.getView(position, convertView, parent);
+                android.widget.TextView textView = (android.widget.TextView) view;
+                textView.setTextColor(getResources().getColor(com.chotujobs.R.color.design_default_color_on_surface, null));
+                return view;
+            }
+            
+            @Override
+            public android.view.View getDropDownView(int position, android.view.View convertView, android.view.ViewGroup parent) {
+                android.view.View view = super.getDropDownView(position, convertView, parent);
+                android.widget.TextView textView = (android.widget.TextView) view;
+                textView.setTextColor(getResources().getColor(com.chotujobs.R.color.design_default_color_on_surface, null));
+                view.setBackgroundColor(getResources().getColor(com.chotujobs.R.color.design_default_color_surface, null));
+                return view;
+            }
+        };
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         binding.categorySpinner.setAdapter(adapter);
     }

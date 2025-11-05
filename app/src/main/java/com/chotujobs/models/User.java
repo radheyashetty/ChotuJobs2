@@ -2,9 +2,10 @@ package com.chotujobs.models;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-
+import com.google.firebase.firestore.IgnoreExtraProperties;
 import java.util.List;
 
+@IgnoreExtraProperties
 public class User implements Parcelable {
     private String userId;
     private String name;

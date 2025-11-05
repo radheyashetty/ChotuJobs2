@@ -12,8 +12,6 @@ import com.bumptech.glide.Glide;
 import com.chotujobs.databinding.ItemContractorJobBinding;
 import com.chotujobs.models.Job;
 
-import java.util.List;
-
 public class ContractorJobAdapter extends ListAdapter<Job, ContractorJobAdapter.JobViewHolder> {
 
     private OnJobClickListener listener;

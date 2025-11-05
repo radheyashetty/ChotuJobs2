@@ -1,7 +1,6 @@
 package com.chotujobs;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -12,8 +11,6 @@ import com.chotujobs.adapters.MessagesAdapter;
 import com.chotujobs.databinding.ActivityChatBinding;
 import com.chotujobs.models.Message;
 import com.chotujobs.services.FirestoreService;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
@@ -92,13 +89,11 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
+        String senderId = firestoreService.getCurrentUserId();
+        if (senderId == null) {
             Toast.makeText(this, "You must be logged in to send messages", Toast.LENGTH_SHORT).show();
             return;
         }
-        
-        String senderId = currentUser.getUid();
         String receiver = receiverId != null ? receiverId : "";
         Message message = new Message(senderId, receiver, messageText);
 
@@ -129,7 +124,6 @@ public class ChatActivity extends AppCompatActivity {
                     for (DocumentChange dc : snapshots.getDocumentChanges()) {
                         Message message = dc.getDocument().toObject(Message.class);
                         if (message == null || message.getSenderId() == null || message.getMessage() == null) {
-                            Log.w("ChatActivity", "Skipping invalid message: " + dc.getDocument().getId());
                             continue;
                         }
 
@@ -138,14 +132,7 @@ public class ChatActivity extends AppCompatActivity {
                         
                         switch (dc.getType()) {
                             case ADDED:
-                                boolean exists = false;
-                                for (Message m : messageList) {
-                                    if (docId.equals(m.getMessageId())) {
-                                        exists = true;
-                                        break;
-                                    }
-                                }
-                                if (!exists) {
+                                if (!messageExists(docId)) {
                                     messageList.add(message);
                                     adapter.notifyItemInserted(messageList.size() - 1);
                                     binding.recyclerView.post(() -> {
@@ -157,32 +144,46 @@ public class ChatActivity extends AppCompatActivity {
                                 }
                                 break;
                             case MODIFIED:
-                                // Update existing message
-                                for (int i = 0; i < messageList.size(); i++) {
-                                    if (docId.equals(messageList.get(i).getMessageId())) {
-                                        messageList.set(i, message);
-                                        adapter.notifyItemChanged(i);
-                                        break;
-                                    }
-                                }
+                                updateMessage(docId, message);
                                 break;
                             case REMOVED:
-                                // Remove message
-                                for (int i = 0; i < messageList.size(); i++) {
-                                    if (docId.equals(messageList.get(i).getMessageId())) {
-                                        messageList.remove(i);
-                                        adapter.notifyItemRemoved(i);
-                                        updateEmptyState();
-                                        break;
-                                    }
-                                }
+                                removeMessage(docId);
                                 break;
                         }
                     }
                     
-                    // Update empty state after processing all changes
                     updateEmptyState();
                 });
+    }
+
+    private boolean messageExists(String messageId) {
+        for (Message m : messageList) {
+            if (messageId.equals(m.getMessageId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void updateMessage(String messageId, Message message) {
+        for (int i = 0; i < messageList.size(); i++) {
+            if (messageId.equals(messageList.get(i).getMessageId())) {
+                messageList.set(i, message);
+                adapter.notifyItemChanged(i);
+                break;
+            }
+        }
+    }
+
+    private void removeMessage(String messageId) {
+        for (int i = 0; i < messageList.size(); i++) {
+            if (messageId.equals(messageList.get(i).getMessageId())) {
+                messageList.remove(i);
+                adapter.notifyItemRemoved(i);
+                updateEmptyState();
+                break;
+            }
+        }
     }
 
     @Override

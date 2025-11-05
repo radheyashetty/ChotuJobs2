@@ -70,10 +70,6 @@ public class ContractorFragment extends Fragment {
                 binding.swipeRefreshLayout.setRefreshing(false);
                 if (jobs != null) {
                     adapter.submitList(jobs);
-                } else {
-                    if (getContext() != null) {
-                        Toast.makeText(getContext(), "Error loading jobs", Toast.LENGTH_SHORT).show();
-                    }
                 }
             }
         });

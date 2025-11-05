@@ -81,7 +81,24 @@ public class BidDialogFragment extends DialogFragment {
         firestoreService.getLabourers(users -> {
             if (getContext() != null && users != null && !users.isEmpty()) {
                 ArrayAdapter<User> adapter = new ArrayAdapter<>(
-                        getContext(), android.R.layout.simple_spinner_item, users);
+                        getContext(), android.R.layout.simple_spinner_item, users) {
+                    @Override
+                    public android.view.View getView(int position, android.view.View convertView, android.view.ViewGroup parent) {
+                        android.view.View view = super.getView(position, convertView, parent);
+                        android.widget.TextView textView = (android.widget.TextView) view;
+                        textView.setTextColor(getResources().getColor(com.chotujobs.R.color.design_default_color_on_surface, null));
+                        return view;
+                    }
+                    
+                    @Override
+                    public android.view.View getDropDownView(int position, android.view.View convertView, android.view.ViewGroup parent) {
+                        android.view.View view = super.getDropDownView(position, convertView, parent);
+                        android.widget.TextView textView = (android.widget.TextView) view;
+                        textView.setTextColor(getResources().getColor(com.chotujobs.R.color.design_default_color_on_surface, null));
+                        view.setBackgroundColor(getResources().getColor(com.chotujobs.R.color.design_default_color_surface, null));
+                        return view;
+                    }
+                };
                 adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                 binding.labourerSpinner.setAdapter(adapter);
             } else if (getContext() != null) {
@@ -105,11 +122,11 @@ public class BidDialogFragment extends DialogFragment {
     }
     
     private boolean areIdsValid() {
-        if (isEmpty(jobId)) {
+        if (jobId == null || jobId.isEmpty()) {
             showToast("Job ID is missing");
             return false;
         }
-        if (isEmpty(bidderId)) {
+        if (bidderId == null || bidderId.isEmpty()) {
             showToast("Bidder ID is missing");
             return false;
         }
@@ -172,9 +189,6 @@ public class BidDialogFragment extends DialogFragment {
         }
     }
     
-    private boolean isEmpty(String str) {
-        return str == null || str.isEmpty();
-    }
 
     public void setBidListener(Runnable listener) {
         this.bidListener = listener;

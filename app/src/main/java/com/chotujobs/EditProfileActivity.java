@@ -12,13 +12,10 @@ import com.bumptech.glide.Glide;
 import com.chotujobs.databinding.ActivityEditProfileBinding;
 import com.chotujobs.models.User;
 import com.chotujobs.services.FirestoreService;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class EditProfileActivity extends AppCompatActivity {
@@ -36,13 +33,12 @@ public class EditProfileActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         firestoreService = FirestoreService.getInstance();
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
+        userId = firestoreService.getCurrentUserId();
+        if (userId == null) {
             Toast.makeText(this, "Please log in again.", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
-        userId = currentUser.getUid();
 
         loadUserProfile();
 
@@ -86,30 +82,9 @@ public class EditProfileActivity extends AppCompatActivity {
     private void loadUserProfile() {
         firestoreService.getUserProfile(userId, user -> {
             if (user != null) {
-                // Load name
-                String name = user.getName();
-                if (name != null && !name.trim().isEmpty()) {
-                    binding.nameEditText.setText(name);
-                } else {
-                    binding.nameEditText.setText("");
-                }
-                
-                // Load skills
-                if (user.getSkills() != null && !user.getSkills().isEmpty()) {
-                    binding.skillsEditText.setText(String.join(", ", user.getSkills()));
-                } else {
-                    binding.skillsEditText.setText("");
-                }
-                
-                // Load address
-                String address = user.getAddress();
-                if (address != null && !address.trim().isEmpty()) {
-                    binding.addressEditText.setText(address);
-                } else {
-                    binding.addressEditText.setText("");
-                }
-                
-                // Load experience
+                binding.nameEditText.setText(user.getName() != null ? user.getName() : "");
+                binding.skillsEditText.setText(user.getSkills() != null && !user.getSkills().isEmpty() ? String.join(", ", user.getSkills()) : "");
+                binding.addressEditText.setText(user.getAddress() != null ? user.getAddress() : "");
                 binding.experienceEditText.setText(String.valueOf(user.getYearsOfExperience()));
 
                 // Load profile image

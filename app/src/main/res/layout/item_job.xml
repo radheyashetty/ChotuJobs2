@@ -11,7 +11,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:background="@color/design_default_color_surface">
 
         <ImageView
             android:id="@+id/imageView"
@@ -27,6 +28,7 @@
             android:layout_height="wrap_content"
             android:textSize="20sp"
             android:textStyle="bold"
+            android:textColor="@color/design_default_color_on_surface"
             android:layout_marginBottom="8dp" />
 
         <TextView
@@ -34,6 +36,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="16sp"
+            android:textColor="@color/design_default_color_on_surface"
             android:layout_marginBottom="4dp" />
 
         <TextView
@@ -56,6 +59,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="14sp"
+            android:textColor="@color/design_default_color_on_surface"
             android:layout_marginTop="4dp" />
 
         <TextView
@@ -63,6 +67,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="14sp"
+            android:textColor="@color/design_default_color_primary"
+            android:textStyle="bold"
             android:layout_marginTop="4dp" />
 
         <LinearLayout
@@ -77,6 +83,8 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Apply for Job"
+                android:textColor="@android:color/white"
+                android:background="@color/design_default_color_primary"
                 android:layout_marginEnd="8dp"
                 style="@style/Widget.Material3.Button" />
 
@@ -86,6 +94,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Message Contractor"
+                android:textColor="@color/design_default_color_primary"
                 style="@style/Widget.Material3.Button.OutlinedButton" />
         </LinearLayout>
     </LinearLayout>

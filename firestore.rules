@@ -32,9 +32,16 @@ service cloud.firestore {
       allow update: if isSignedIn()
         && resource.data.contractorId == request.auth.uid
         && request.resource.data.contractorId == resource.data.contractorId
-        && request.resource.data.keys().hasOnly(['title','category','startDate','location','imageUrl','requirements','bidLimit','status','winnerUserId','timestamp'])
         && (("status" in request.resource.data) ? (request.resource.data.status in ['active','closed']) : true)
-        && (!("timestamp" in request.resource.data) || (request.resource.data.timestamp is int || request.resource.data.timestamp is timestamp));
+        && (!("timestamp" in request.resource.data) || (request.resource.data.timestamp is int || request.resource.data.timestamp is timestamp))
+        && (!("title" in request.resource.data) || request.resource.data.title == resource.data.title)
+        && (!("category" in request.resource.data) || request.resource.data.category == resource.data.category)
+        && (!("startDate" in request.resource.data) || request.resource.data.startDate == resource.data.startDate)
+        && (!("location" in request.resource.data) || request.resource.data.location == resource.data.location)
+        && (!("imageUrl" in request.resource.data) || request.resource.data.imageUrl == resource.data.imageUrl)
+        && (!("requirements" in request.resource.data) || request.resource.data.requirements == resource.data.requirements)
+        && (!("bidLimit" in request.resource.data) || request.resource.data.bidLimit == resource.data.bidLimit)
+        && (!("winnerUserId" in request.resource.data) || request.resource.data.winnerUserId is string);
     }
 
     // BIDS under a job
@@ -62,8 +69,11 @@ service cloud.firestore {
       // Only contractor owning the job can update bid status
       allow update: if isSignedIn()
         && get(/databases/$(database)/documents/jobs/$(jobId)).data.contractorId == request.auth.uid
-        && request.resource.data.keys().hasOnly(['status'])
-        && request.resource.data.status in ['pending','accepted','rejected'];
+        && request.resource.data.status in ['pending','accepted','rejected']
+        && request.resource.data.bidderId == resource.data.bidderId
+        && request.resource.data.bidAmount == resource.data.bidAmount
+        && request.resource.data.jobId == resource.data.jobId
+        && (!("labourerIdIfAgent" in request.resource.data) || !("labourerIdIfAgent" in resource.data) || request.resource.data.labourerIdIfAgent == resource.data.labourerIdIfAgent);
     }
 
     // CHATS

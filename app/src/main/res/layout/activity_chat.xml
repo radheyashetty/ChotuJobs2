@@ -61,7 +61,7 @@
             android:layout_marginTop="8dp"
             android:text="Start chatting!"
             android:textSize="14sp"
-            android:textColor="@color/design_default_color_outline" />
+            android:textColor="@color/design_default_color_on_surface_variant" />
     </LinearLayout>
 
     <!-- Input Box -->

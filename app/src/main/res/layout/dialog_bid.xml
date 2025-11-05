@@ -3,7 +3,8 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="@color/design_default_color_surface">
 
     <TextView
         android:id="@+id/labourerLabel"
@@ -11,13 +12,17 @@
         android:layout_height="wrap_content"
         android:text="Select Labourer:"
         android:textSize="16sp"
+        android:textColor="@color/design_default_color_on_surface"
+        android:textStyle="bold"
         android:layout_marginBottom="8dp" />
 
     <Spinner
         android:id="@+id/labourerSpinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="16dp"
+        android:popupBackground="@color/design_default_color_surface"
+        android:textColor="@color/design_default_color_on_surface" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"

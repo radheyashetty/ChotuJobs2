@@ -1,8 +1,44 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.ChotuJobs" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <!-- Primary colors -->
+        <item name="colorPrimary">@color/design_default_color_primary</item>
+        <item name="colorOnPrimary">@color/design_default_color_on_primary</item>
+        <item name="colorPrimaryContainer">@color/design_default_color_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/design_default_color_on_primary_container</item>
+        
+        <!-- Secondary colors -->
+        <item name="colorSecondary">@color/design_default_color_secondary</item>
+        <item name="colorOnSecondary">@color/design_default_color_on_secondary</item>
+        <item name="colorSecondaryContainer">@color/design_default_color_secondary_container</item>
+        <item name="colorOnSecondaryContainer">@color/design_default_color_on_secondary_container</item>
+        
+        <!-- Tertiary colors -->
+        <item name="colorTertiary">@color/design_default_color_tertiary</item>
+        <item name="colorOnTertiary">@color/design_default_color_on_tertiary</item>
+        <item name="colorTertiaryContainer">@color/design_default_color_tertiary_container</item>
+        <item name="colorOnTertiaryContainer">@color/design_default_color_on_tertiary_container</item>
+        
+        <!-- Error colors -->
+        <item name="colorError">@color/design_default_color_error</item>
+        <item name="colorOnError">@color/design_default_color_on_error</item>
+        <item name="colorErrorContainer">@color/design_default_color_error_container</item>
+        <item name="colorOnErrorContainer">@color/design_default_color_on_error_container</item>
+        
+        <!-- Surface colors -->
+        <item name="colorSurface">@color/design_default_color_surface</item>
+        <item name="colorOnSurface">@color/design_default_color_on_surface</item>
+        <item name="colorSurfaceVariant">@color/design_default_color_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/design_default_color_on_surface_variant</item>
+        
+        <!-- Outline colors -->
+        <item name="colorOutline">@color/design_default_color_outline</item>
+        <item name="colorOutlineVariant">@color/design_default_color_outline_variant</item>
+        
+        <!-- Background -->
+        <item name="android:colorBackground">@color/design_default_color_surface</item>
+        <item name="android:textColorPrimary">@color/design_default_color_on_surface</item>
+        <item name="android:textColorSecondary">@color/design_default_color_on_surface_variant</item>
     </style>
 
     <style name="Theme.ChotuJobs" parent="Base.Theme.ChotuJobs" />

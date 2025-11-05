@@ -13,8 +13,7 @@ import com.chotujobs.ChatActivity;
 import com.chotujobs.databinding.ItemChatBinding;
 import com.chotujobs.models.Chat;
 import com.chotujobs.models.User;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
+import com.chotujobs.services.FirestoreService;
 
 import java.util.List;
 import java.util.Map;
@@ -23,10 +22,12 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
 
     private List<Chat> chatList;
     private Map<String, User> userMap;
+    private String currentUserId;
 
     public ChatsAdapter(List<Chat> chatList, Map<String, User> userMap) {
         this.chatList = chatList;
         this.userMap = userMap;
+        this.currentUserId = FirestoreService.getInstance().getCurrentUserId();
     }
 
     @NonNull
@@ -56,13 +57,10 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
         }
 
         public void bind(Chat chat) {
-            if (chat == null) return;
-            
-            FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-            if (currentUser == null || chat.getUserIds() == null) {
+            if (chat == null || chat.getUserIds() == null || currentUserId == null) {
                 return;
             }
-            String currentUserId = currentUser.getUid();
+            
             String otherUserId = "";
             for (String userId : chat.getUserIds()) {
                 if (userId != null && !userId.equals(currentUserId)) {

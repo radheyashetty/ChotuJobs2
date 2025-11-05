@@ -17,17 +17,13 @@ import androidx.fragment.app.Fragment;
 
 import com.bumptech.glide.Glide;
 import com.chotujobs.EditProfileActivity;
-import com.chotujobs.LoginActivity;
 import com.chotujobs.databinding.FragmentProfileBinding;
 import com.chotujobs.models.User;
 import com.chotujobs.services.FirestoreService;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 
 public class ProfileFragment extends Fragment {
 
     private FragmentProfileBinding binding;
-    private FirebaseAuth auth;
     private SharedPreferences prefs;
     private ActivityResultLauncher<Intent> editProfileLauncher;
 
@@ -35,8 +31,6 @@ public class ProfileFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         binding = FragmentProfileBinding.inflate(inflater, container, false);
-
-        auth = FirebaseAuth.getInstance();
         prefs = requireContext().getSharedPreferences("chotujobs_prefs", 0);
 
         // Register for activity result
@@ -61,21 +55,14 @@ public class ProfileFragment extends Fragment {
         return binding.getRoot();
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        loadUserProfile();
-    }
-
     private void loadUserProfile() {
-        FirebaseUser currentUser = auth.getCurrentUser();
-        if (currentUser == null) {
+        String userId = FirestoreService.getInstance().getCurrentUserId();
+        if (userId == null) {
             if (isAdded() && binding != null) {
                 binding.userNameTextView.setText("Not logged in");
             }
             return;
         }
-        String userId = currentUser.getUid();
         FirestoreService.getInstance().getUserProfile(userId, user -> {
             if (!isAdded() || binding == null) {
                 return;
@@ -109,14 +96,12 @@ public class ProfileFragment extends Fragment {
     }
 
     private void handleLogout() {
-        auth.signOut();
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.clear();
-        editor.apply();
+        com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
+        prefs.edit().clear().apply();
 
         if (getContext() != null) {
             Toast.makeText(getContext(), "Logged out successfully", Toast.LENGTH_SHORT).show();
-            Intent intent = new Intent(getContext(), LoginActivity.class);
+            Intent intent = new Intent(getContext(), com.chotujobs.LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
         }
@@ -132,9 +117,7 @@ public class ProfileFragment extends Fragment {
     
     private void setRoleText(android.widget.TextView textView, String role) {
         if (isNotEmpty(role)) {
-            String capitalized = role.length() > 1 
-                ? role.substring(0, 1).toUpperCase() + role.substring(1)
-                : role.toUpperCase();
+            String capitalized = role.substring(0, 1).toUpperCase() + (role.length() > 1 ? role.substring(1) : "");
             textView.setText("Role: " + capitalized);
         } else {
             textView.setText("Role: Unknown");

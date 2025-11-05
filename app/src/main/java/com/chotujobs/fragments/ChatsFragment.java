@@ -16,8 +16,6 @@ import com.chotujobs.databinding.FragmentChatsBinding;
 import com.chotujobs.models.Chat;
 import com.chotujobs.models.User;
 import com.chotujobs.services.FirestoreService;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.ListenerRegistration;
 
@@ -63,8 +61,8 @@ public class ChatsFragment extends Fragment {
         userMap.clear();
         adapter.notifyDataSetChanged();
 
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser == null) {
+        String currentUserId = firestoreService.getCurrentUserId();
+        if (currentUserId == null) {
             if (isAdded() && getContext() != null) {
                 Toast.makeText(getContext(), "You need to be logged in to view chats.", Toast.LENGTH_SHORT).show();
                 if (binding != null) {
@@ -73,7 +71,6 @@ public class ChatsFragment extends Fragment {
             }
             return;
         }
-        String currentUserId = currentUser.getUid();
         chatListener = firestoreService.getChatsForUser(currentUserId)
                 .addSnapshotListener((snapshots, e) -> {
                     if (!isAdded() || binding == null) return;
@@ -86,9 +83,7 @@ public class ChatsFragment extends Fragment {
                         return;
                     }
 
-                    if (snapshots == null) {
-                        return;
-                    }
+                    if (snapshots == null) return;
 
                     List<String> userIds = new ArrayList<>();
                     for (DocumentChange dc : snapshots.getDocumentChanges()) {
@@ -102,34 +97,16 @@ public class ChatsFragment extends Fragment {
                         
                         switch (dc.getType()) {
                             case ADDED:
-                                boolean exists = false;
-                                for (Chat c : chatList) {
-                                    if (docId.equals(c.getChatId())) {
-                                        exists = true;
-                                        break;
-                                    }
-                                }
-                                if (!exists) {
+                                if (!chatExists(docId)) {
                                     chatList.add(chat);
                                     collectUserIds(chat, currentUserId, userIds);
                                 }
                                 break;
                             case MODIFIED:
-                                for (int i = 0; i < chatList.size(); i++) {
-                                    if (docId.equals(chatList.get(i).getChatId())) {
-                                        chatList.set(i, chat);
-                                        collectUserIds(chat, currentUserId, userIds);
-                                        break;
-                                    }
-                                }
+                                updateChat(docId, chat, currentUserId, userIds);
                                 break;
                             case REMOVED:
-                                for (int i = 0; i < chatList.size(); i++) {
-                                    if (docId.equals(chatList.get(i).getChatId())) {
-                                        chatList.remove(i);
-                                        break;
-                                    }
-                                }
+                                removeChat(docId);
                                 break;
                         }
                     }
@@ -157,6 +134,34 @@ public class ChatsFragment extends Fragment {
             chatListener.remove();
         }
         binding = null;
+    }
+
+    private boolean chatExists(String chatId) {
+        for (Chat c : chatList) {
+            if (chatId.equals(c.getChatId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void updateChat(String chatId, Chat chat, String currentUserId, List<String> userIds) {
+        for (int i = 0; i < chatList.size(); i++) {
+            if (chatId.equals(chatList.get(i).getChatId())) {
+                chatList.set(i, chat);
+                collectUserIds(chat, currentUserId, userIds);
+                break;
+            }
+        }
+    }
+
+    private void removeChat(String chatId) {
+        for (int i = 0; i < chatList.size(); i++) {
+            if (chatId.equals(chatList.get(i).getChatId())) {
+                chatList.remove(i);
+                break;
+            }
+        }
     }
 
     private void collectUserIds(Chat chat, String currentUserId, List<String> userIds) {
