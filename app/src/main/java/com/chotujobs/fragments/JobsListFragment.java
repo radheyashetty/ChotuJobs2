@@ -55,22 +55,15 @@ public class JobsListFragment extends Fragment implements JobAdapter.OnJobClickL
         String authUserId = firestoreService.getCurrentUserId();
         currentUserId = authUserId != null ? authUserId : prefs.getString("user_id", "");
 
-        // If userRole is not set from arguments, try to get it from SharedPreferences or Firestore
         if (userRole == null || userRole.isEmpty()) {
             userRole = prefs.getString("user_role", "");
-            if (userRole == null || userRole.isEmpty()) {
-                // Fetch from Firestore as fallback
-                if (currentUserId != null && !currentUserId.isEmpty()) {
-                    firestoreService.getUserProfile(currentUserId, user -> {
-                        if (user != null && user.getRole() != null) {
-                            userRole = user.getRole();
-                            if (adapter != null) {
-                                adapter.setUserRole(userRole);
-                                adapter.notifyDataSetChanged();
-                            }
-                        }
-                    });
-                }
+            if ((userRole == null || userRole.isEmpty()) && currentUserId != null && !currentUserId.isEmpty()) {
+                firestoreService.getUserProfile(currentUserId, user -> {
+                    if (user != null && user.getRole() != null && adapter != null) {
+                        adapter.setUserRole(user.getRole());
+                        adapter.notifyDataSetChanged();
+                    }
+                });
             }
         }
 
@@ -105,6 +98,13 @@ public class JobsListFragment extends Fragment implements JobAdapter.OnJobClickL
 
     @Override
     public void onJobClick(Job job) {
+        if (job == null || job.getJobId() == null || job.getJobId().isEmpty()) {
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "Invalid job information", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+        
         BidDialogFragment dialog = BidDialogFragment.newInstance(job.getJobId(), currentUserId, userRole);
         dialog.setBidListener(() -> {
             if (isAdded()) {
@@ -119,9 +119,23 @@ public class JobsListFragment extends Fragment implements JobAdapter.OnJobClickL
 
     @Override
     public void onMessageClick(Job job) {
+        if (job == null || job.getContractorId() == null || job.getContractorId().isEmpty()) {
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "Invalid job information", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+        
+        if (currentUserId == null || currentUserId.isEmpty()) {
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "Please log in again", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+        
         firestoreService.createChat(currentUserId, job.getContractorId(), chatId -> {
             if (isAdded() && getContext() != null) {
-                if (chatId != null) {
+                if (chatId != null && !chatId.isEmpty()) {
                     Intent intent = new Intent(getContext(), ChatActivity.class);
                     intent.putExtra("chatId", chatId);
                     intent.putExtra("receiverId", job.getContractorId());

@@ -80,6 +80,13 @@ public class ContractorFragment extends Fragment {
     }
 
     private void showJobDetails(Job job) {
+        if (job == null || job.getJobId() == null || job.getJobId().isEmpty()) {
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "Invalid job information", Toast.LENGTH_SHORT).show();
+            }
+            return;
+        }
+        
         JobDetailsDialogFragment dialog = JobDetailsDialogFragment.newInstance(job.getJobId());
         dialog.setJobClosedListener(() -> {
             if(isAdded()){

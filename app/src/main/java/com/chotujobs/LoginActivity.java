@@ -136,18 +136,21 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        binding.progressBar.setVisibility(View.VISIBLE);
-        binding.btnAction.setEnabled(false);
+        showProgress();
 
         auth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
-                        Log.d(TAG, "Login successful");
-                        String uid = auth.getCurrentUser().getUid();
-                        fetchUserProfileAndNavigate(uid);
+                        FirebaseUser user = auth.getCurrentUser();
+                        if (user != null) {
+                            Log.d(TAG, "Login successful");
+                            fetchUserProfileAndNavigate(user.getUid());
+                        } else {
+                            hideProgress();
+                            Toast.makeText(this, "Failed to get user information", Toast.LENGTH_SHORT).show();
+                        }
                     } else {
-                        binding.progressBar.setVisibility(View.GONE);
-                        binding.btnAction.setEnabled(true);
+                        hideProgress();
                         if (task.getException() instanceof FirebaseAuthUserCollisionException) {
                             Toast.makeText(this, "Email already in use.", Toast.LENGTH_SHORT).show();
                         } else {
@@ -165,8 +168,7 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        binding.progressBar.setVisibility(View.VISIBLE);
-        binding.btnAction.setEnabled(false);
+        showProgress();
 
         PhoneAuthProvider.getInstance().verifyPhoneNumber(
                 "+91" + phoneNumber,
@@ -206,15 +208,21 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void signInWithPhoneAuthCredential(PhoneAuthCredential credential) {
-        binding.progressBar.setVisibility(View.VISIBLE);
-        binding.btnAction.setEnabled(false);
+        showProgress();
         auth.signInWithCredential(credential)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
-                        Log.d(TAG, "Login successful");
-                        String uid = auth.getCurrentUser().getUid();
-                        fetchUserProfileAndNavigate(uid);
+                        FirebaseUser user = auth.getCurrentUser();
+                        if (user != null) {
+                            Log.d(TAG, "Login successful");
+                            fetchUserProfileAndNavigate(user.getUid());
+                        } else {
+                            hideProgress();
+                            Toast.makeText(this, "Failed to get user information", Toast.LENGTH_SHORT).show();
+                            updateUi(UiState.PHONE_LOGIN);
+                        }
                     } else {
+                        hideProgress();
                         Log.w(TAG, "Login failed", task.getException());
                         Toast.makeText(this, "Authentication failed.", Toast.LENGTH_SHORT).show();
                         updateUi(UiState.PHONE_LOGIN);
@@ -225,10 +233,10 @@ public class LoginActivity extends AppCompatActivity {
     private void fetchUserProfileAndNavigate(String uid) {
         firestoreService.getUserProfile(uid, user -> {
             if (user != null && user.getRole() != null && !user.getRole().isEmpty()) {
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.putString("user_role", user.getRole());
-                editor.putString("user_id", uid);
-                editor.apply();
+                prefs.edit()
+                        .putString("user_role", user.getRole())
+                        .putString("user_id", uid)
+                        .apply();
                 navigateToMain();
             } else {
                 promptForRole(null, null);
@@ -244,50 +252,38 @@ public class LoginActivity extends AppCompatActivity {
                 return;
             }
             String role = binding.roleSpinner.getSelectedItem().toString().toLowerCase();
-            binding.progressBar.setVisibility(View.VISIBLE);
-            binding.btnAction.setEnabled(false);
+            showProgress();
             
-            // Check if we're in email login flow (need to create account) or phone (already authenticated)
-            UiState currentState = getCurrentUiState();
             if (email != null && password != null && !email.isEmpty() && !password.isEmpty()) {
-                // Email signup flow
                 auth.createUserWithEmailAndPassword(email, password)
                         .addOnCompleteListener(this, task -> {
                             if (task.isSuccessful()) {
-                                String newUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : null;
-                                if (newUid != null) {
+                                FirebaseUser user = auth.getCurrentUser();
+                                if (user != null) {
                                     String name = email.contains("@") ? email.split("@")[0] : email;
-                                    User user = new User(name, email, role);
-                                    createUserProfile(user, newUid, role);
+                                    User userObj = new User(name, email, role);
+                                    createUserProfile(userObj, user.getUid(), role);
                                 } else {
-                                    Toast.makeText(this, "Failed to get user ID", Toast.LENGTH_SHORT).show();
+                                    showError("Failed to get user ID");
                                     updateUi(UiState.EMAIL_LOGIN);
                                 }
                             } else {
-                                binding.progressBar.setVisibility(View.GONE);
-                                binding.btnAction.setEnabled(true);
-                                Toast.makeText(this, "Authentication failed: " + (task.getException() != null ? task.getException().getMessage() : "Unknown error"), Toast.LENGTH_SHORT).show();
+                                showError("Authentication failed");
                                 updateUi(UiState.EMAIL_LOGIN);
                             }
                         });
             } else {
-                // Phone authentication flow (already authenticated)
                 FirebaseUser currentUser = auth.getCurrentUser();
                 if (currentUser != null) {
-                    String uid = currentUser.getUid();
                     String phoneNumber = currentUser.getPhoneNumber();
                     if (phoneNumber != null) {
                         User user = new User(phoneNumber, phoneNumber, role, true);
-                        createUserProfile(user, uid, role);
+                        createUserProfile(user, currentUser.getUid(), role);
                     } else {
-                        Toast.makeText(this, "Phone number not available", Toast.LENGTH_SHORT).show();
-                        binding.progressBar.setVisibility(View.GONE);
-                        binding.btnAction.setEnabled(true);
+                        showError("Phone number not available");
                     }
                 } else {
-                    Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
-                    binding.progressBar.setVisibility(View.GONE);
-                    binding.btnAction.setEnabled(true);
+                    showError("User not authenticated");
                 }
             }
         });
@@ -295,18 +291,32 @@ public class LoginActivity extends AppCompatActivity {
     
     private void createUserProfile(User user, String uid, String role) {
         firestoreService.createUserProfile(user, uid, success -> {
-            binding.progressBar.setVisibility(View.GONE);
-            binding.btnAction.setEnabled(true);
+            hideProgress();
             if (success) {
-                SharedPreferences.Editor editor = prefs.edit();
-                editor.putString("user_role", role);
-                editor.putString("user_id", uid);
-                editor.apply();
+                prefs.edit()
+                        .putString("user_role", role)
+                        .putString("user_id", uid)
+                        .apply();
                 navigateToMain();
             } else {
-                Toast.makeText(this, "Failed to create profile", Toast.LENGTH_SHORT).show();
+                showError("Failed to create profile");
             }
         });
+    }
+
+    private void showError(String message) {
+        hideProgress();
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+    
+    private void hideProgress() {
+        binding.progressBar.setVisibility(View.GONE);
+        binding.btnAction.setEnabled(true);
+    }
+    
+    private void showProgress() {
+        binding.progressBar.setVisibility(View.VISIBLE);
+        binding.btnAction.setEnabled(false);
     }
 
     private void navigateToMain() {

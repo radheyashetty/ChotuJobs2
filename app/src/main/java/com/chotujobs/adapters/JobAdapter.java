@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.chotujobs.databinding.ItemJobBinding;
 import com.chotujobs.models.Job;
+import com.chotujobs.services.FirestoreService;
 
 public class JobAdapter extends ListAdapter<Job, JobAdapter.JobViewHolder> {
 
@@ -26,6 +27,10 @@ public class JobAdapter extends ListAdapter<Job, JobAdapter.JobViewHolder> {
 
     public void setUserRole(String userRole) {
         this.userRole = userRole != null ? userRole : "";
+    }
+    
+    private boolean canUserPlaceBid(String role) {
+        return FirestoreService.canPlaceBid(role);
     }
 
     private static final DiffUtil.ItemCallback<Job> DIFF_CALLBACK = new DiffUtil.ItemCallback<Job>() {
@@ -113,22 +118,10 @@ public class JobAdapter extends ListAdapter<Job, JobAdapter.JobViewHolder> {
                 binding.bidLimitTextView.setVisibility(android.view.View.GONE);
             }
 
-            // Show buttons for labour/labourer and agent users, hide for contractors
-            boolean shouldShowButtons = false;
-            if (userRole != null && !userRole.isEmpty()) {
-                String roleLower = userRole.toLowerCase();
-                shouldShowButtons = "labour".equals(roleLower) || 
-                                  "labourer".equals(roleLower) || 
-                                  "agent".equals(roleLower);
-            }
-            
-            if (shouldShowButtons) {
-                binding.applyButton.setVisibility(android.view.View.VISIBLE);
-                binding.messageButton.setVisibility(android.view.View.VISIBLE);
-            } else {
-                binding.applyButton.setVisibility(android.view.View.GONE);
-                binding.messageButton.setVisibility(android.view.View.GONE);
-            }
+            boolean canBid = canUserPlaceBid(userRole);
+            int visibility = canBid ? android.view.View.VISIBLE : android.view.View.GONE;
+            binding.applyButton.setVisibility(visibility);
+            binding.messageButton.setVisibility(visibility);
 
             if (job.getImageUrl() != null && !job.getImageUrl().isEmpty()) {
                 Glide.with(itemView.getContext())

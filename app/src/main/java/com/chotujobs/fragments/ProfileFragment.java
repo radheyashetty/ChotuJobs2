@@ -99,50 +99,11 @@ public class ProfileFragment extends Fragment {
                 binding.profileImageView.setImageResource(android.R.drawable.ic_menu_gallery);
             }
             
-            // Display name
-            String userName = user.getName();
-            if (userName != null && !userName.trim().isEmpty()) {
-                binding.userNameTextView.setText(userName);
-            } else {
-                binding.userNameTextView.setText("Name not set");
-            }
-            
-            // Display role
-            String role = user.getRole();
-            if (role != null && !role.trim().isEmpty()) {
-                String capitalizedRole = role.length() > 1 
-                    ? role.substring(0, 1).toUpperCase() + role.substring(1)
-                    : role.toUpperCase();
-                binding.userRoleTextView.setText("Role: " + capitalizedRole);
-            } else {
-                binding.userRoleTextView.setText("Role: Unknown");
-            }
-            
-            // Display contact (email or phone)
-            if (user.getEmail() != null && !user.getEmail().trim().isEmpty()) {
-                binding.userContactTextView.setText(user.getEmail());
-            } else if (user.getPhone() != null && !user.getPhone().trim().isEmpty()) {
-                binding.userContactTextView.setText(user.getPhone());
-            } else {
-                binding.userContactTextView.setText("Contact: Not set");
-            }
-            
-            // Display address
-            String address = user.getAddress();
-            if (address != null && !address.trim().isEmpty()) {
-                binding.userAddressTextView.setText("Address: " + address);
-            } else {
-                binding.userAddressTextView.setText("Address: Not set");
-            }
-            
-            // Display skills
-            if (user.getSkills() != null && !user.getSkills().isEmpty()) {
-                binding.userSkillsTextView.setText("Skills: " + String.join(", ", user.getSkills()));
-            } else {
-                binding.userSkillsTextView.setText("Skills: Not set");
-            }
-            
-            // Display experience
+            setText(binding.userNameTextView, user.getName(), "Name not set");
+            setRoleText(binding.userRoleTextView, user.getRole());
+            setContactText(binding.userContactTextView, user.getEmail(), user.getPhone());
+            setTextWithLabel(binding.userAddressTextView, "Address: ", user.getAddress(), "Not set");
+            setSkillsText(binding.userSkillsTextView, user.getSkills());
             binding.userExperienceTextView.setText("Experience: " + user.getYearsOfExperience() + " years");
         });
     }
@@ -159,6 +120,42 @@ public class ProfileFragment extends Fragment {
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
         }
+    }
+
+    private void setText(android.widget.TextView textView, String value, String defaultText) {
+        textView.setText(isNotEmpty(value) ? value : defaultText);
+    }
+    
+    private void setTextWithLabel(android.widget.TextView textView, String label, String value, String defaultText) {
+        textView.setText(label + (isNotEmpty(value) ? value : defaultText));
+    }
+    
+    private void setRoleText(android.widget.TextView textView, String role) {
+        if (isNotEmpty(role)) {
+            String capitalized = role.length() > 1 
+                ? role.substring(0, 1).toUpperCase() + role.substring(1)
+                : role.toUpperCase();
+            textView.setText("Role: " + capitalized);
+        } else {
+            textView.setText("Role: Unknown");
+        }
+    }
+    
+    private void setContactText(android.widget.TextView textView, String email, String phone) {
+        String contact = isNotEmpty(email) ? email : (isNotEmpty(phone) ? phone : "Not set");
+        textView.setText(contact);
+    }
+    
+    private void setSkillsText(android.widget.TextView textView, java.util.List<String> skills) {
+        if (skills != null && !skills.isEmpty()) {
+            textView.setText("Skills: " + String.join(", ", skills));
+        } else {
+            textView.setText("Skills: Not set");
+        }
+    }
+    
+    private boolean isNotEmpty(String str) {
+        return str != null && !str.trim().isEmpty();
     }
 
     @Override

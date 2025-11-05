@@ -102,7 +102,6 @@ public class ChatsFragment extends Fragment {
                         
                         switch (dc.getType()) {
                             case ADDED:
-                                // Check for duplicates
                                 boolean exists = false;
                                 for (Chat c : chatList) {
                                     if (docId.equals(c.getChatId())) {
@@ -112,29 +111,19 @@ public class ChatsFragment extends Fragment {
                                 }
                                 if (!exists) {
                                     chatList.add(chat);
-                                    for(String userId : chat.getUserIds()){
-                                        if(!userId.equals(currentUserId)){
-                                            userIds.add(userId);
-                                        }
-                                    }
+                                    collectUserIds(chat, currentUserId, userIds);
                                 }
                                 break;
                             case MODIFIED:
-                                // Update existing chat
                                 for (int i = 0; i < chatList.size(); i++) {
                                     if (docId.equals(chatList.get(i).getChatId())) {
                                         chatList.set(i, chat);
-                                        for(String userId : chat.getUserIds()){
-                                            if(!userId.equals(currentUserId)){
-                                                userIds.add(userId);
-                                            }
-                                        }
+                                        collectUserIds(chat, currentUserId, userIds);
                                         break;
                                     }
                                 }
                                 break;
                             case REMOVED:
-                                // Remove chat
                                 for (int i = 0; i < chatList.size(); i++) {
                                     if (docId.equals(chatList.get(i).getChatId())) {
                                         chatList.remove(i);
@@ -145,8 +134,7 @@ public class ChatsFragment extends Fragment {
                         }
                     }
 
-                    // Load user details for all chats
-                    if(!userIds.isEmpty()){
+                    if (!userIds.isEmpty()) {
                         firestoreService.getUsersByIds(userIds, users -> {
                             if (!isAdded()) return;
                             for (User user : users) {
@@ -169,5 +157,15 @@ public class ChatsFragment extends Fragment {
             chatListener.remove();
         }
         binding = null;
+    }
+
+    private void collectUserIds(Chat chat, String currentUserId, List<String> userIds) {
+        if (chat.getUserIds() != null) {
+            for (String userId : chat.getUserIds()) {
+                if (userId != null && !userId.equals(currentUserId)) {
+                    userIds.add(userId);
+                }
+            }
+        }
     }
 }

@@ -30,26 +30,22 @@ public class MessagesAdapter extends RecyclerView.Adapter<MessagesAdapter.Messag
         if (position < 0 || position >= messageList.size()) {
             return VIEW_TYPE_RECEIVED;
         }
-        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         Message message = messageList.get(position);
-        if (currentUser != null && message != null && message.getSenderId() != null 
-                && message.getSenderId().equals(currentUser.getUid())) {
-            return VIEW_TYPE_SENT;
-        } else {
-            return VIEW_TYPE_RECEIVED;
-        }
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        boolean isSentByMe = currentUser != null && message != null 
+                && message.getSenderId() != null 
+                && message.getSenderId().equals(currentUser.getUid());
+        return isSentByMe ? VIEW_TYPE_SENT : VIEW_TYPE_RECEIVED;
     }
 
     @NonNull
     @Override
     public MessageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        if (viewType == VIEW_TYPE_SENT) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_sent, parent, false);
-            return new MessageViewHolder(view);
-        } else {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_message_received, parent, false);
-            return new MessageViewHolder(view);
-        }
+        int layoutId = viewType == VIEW_TYPE_SENT 
+                ? R.layout.item_message_sent 
+                : R.layout.item_message_received;
+        View view = LayoutInflater.from(parent.getContext()).inflate(layoutId, parent, false);
+        return new MessageViewHolder(view);
     }
 
     @Override

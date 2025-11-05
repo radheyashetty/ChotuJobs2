@@ -46,22 +46,17 @@ public class FirestoreService {
     }
 
     public String getCurrentUserId() {
-        if (auth.getCurrentUser() != null) {
-            return auth.getCurrentUser().getUid();
-        }
-        return null;
+        com.google.firebase.auth.FirebaseUser user = auth.getCurrentUser();
+        return user != null ? user.getUid() : null;
     }
 
     // ========== USER METHODS ==========
 
     public void createUserProfile(User user, String uid, OnCompleteListener<Boolean> listener) {
         db.collection(COLLECTION_USERS).document(uid).set(user)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "User profile created successfully");
-                    listener.onComplete(true);
-                })
+                .addOnSuccessListener(aVoid -> listener.onComplete(true))
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error creating user profile", e);
+                    Log.e(TAG, "Error creating user profile: " + e.getMessage());
                     listener.onComplete(false);
                 });
     }
@@ -105,6 +100,27 @@ public class FirestoreService {
                     listener.onComplete(new ArrayList<>());
                 });
     }
+    
+    public void getLabourers(OnCompleteListener<List<User>> listener) {
+        db.collection(COLLECTION_USERS)
+                .whereIn("role", Arrays.asList("labour", "labourer"))
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<User> users = new ArrayList<>();
+                    for (var document : queryDocumentSnapshots.getDocuments()) {
+                        User user = document.toObject(User.class);
+                        if (user != null) {
+                            user.setUserId(document.getId());
+                            users.add(user);
+                        }
+                    }
+                    listener.onComplete(users);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error getting labourers", e);
+                    listener.onComplete(new ArrayList<>());
+                });
+    }
 
     public void getUsersByIds(List<String> userIds, OnCompleteListener<List<User>> listener) {
         if (userIds == null || userIds.isEmpty()) {
@@ -112,9 +128,7 @@ public class FirestoreService {
             return;
         }
 
-        // Firestore whereIn has a limit of 10 items, so we need to batch if more
         if (userIds.size() > 10) {
-            Log.w(TAG, "getUsersByIds: More than 10 userIds, fetching first 10 only");
             userIds = userIds.subList(0, 10);
         }
 
@@ -126,8 +140,6 @@ public class FirestoreService {
                         if (user != null) {
                             user.setUserId(document.getId());
                             users.add(user);
-                        } else {
-                            Log.w(TAG, "Skipping null user document: " + document.getId());
                         }
                     }
                     listener.onComplete(users);
@@ -139,25 +151,15 @@ public class FirestoreService {
     }
 
     public void updateUserProfile(String userId, Map<String, Object> updates, OnCompleteListener<Boolean> listener) {
-        if (userId == null || userId.isEmpty()) {
-            Log.e(TAG, "Cannot update user profile: userId is null or empty");
+        if (userId == null || userId.isEmpty() || updates == null || updates.isEmpty()) {
             listener.onComplete(false);
             return;
         }
-        if (updates == null || updates.isEmpty()) {
-            Log.w(TAG, "No updates to apply for user: " + userId);
-            listener.onComplete(true);
-            return;
-        }
-        
-        Log.d(TAG, "Updating user profile: " + userId + " with fields: " + updates.keySet());
+
         db.collection(COLLECTION_USERS).document(userId).update(updates)
-                .addOnSuccessListener(aVoid -> {
-                    Log.d(TAG, "User profile updated successfully: " + userId);
-                    listener.onComplete(true);
-                })
+                .addOnSuccessListener(aVoid -> listener.onComplete(true))
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error updating user profile: " + userId, e);
+                    Log.e(TAG, "Error updating user profile: " + e.getMessage());
                     listener.onComplete(false);
                 });
     }
@@ -191,8 +193,6 @@ public class FirestoreService {
                         if (job != null) {
                             job.setJobId(document.getId());
                             jobs.add(job);
-                        } else {
-                            Log.w(TAG, "Skipping null job document: " + document.getId());
                         }
                     }
                     listener.onComplete(jobs);
@@ -215,8 +215,6 @@ public class FirestoreService {
                         if (job != null) {
                             job.setJobId(document.getId());
                             jobs.add(job);
-                        } else {
-                            Log.w(TAG, "Skipping null job document: " + document.getId());
                         }
                     }
                     listener.onComplete(jobs);
@@ -267,107 +265,104 @@ public class FirestoreService {
     // ========== BID METHODS ==========
 
     public void createBid(Bid bid, OnCompleteListener<String> listener) {
-        if (bid == null || bid.getJobId() == null || bid.getJobId().isEmpty() 
-                || bid.getBidderId() == null || bid.getBidderId().isEmpty()) {
-            Log.e(TAG, "Cannot create bid: bid is invalid or missing required fields");
-            listener.onComplete(null);
-            return;
-        }
-        
-        // Validate bid amount
-        if (bid.getBidAmount() <= 0) {
-            Log.e(TAG, "Cannot create bid: bid amount must be greater than zero");
-            listener.onComplete(null);
-            return;
-        }
-        
-        // Verify bidderId matches authenticated user
-        String currentUserId = getCurrentUserId();
-        if (currentUserId == null || !currentUserId.equals(bid.getBidderId())) {
-            Log.e(TAG, "Cannot create bid: bidderId (" + bid.getBidderId() + ") doesn't match authenticated user (" + currentUserId + ")");
+        if (!isValidBid(bid)) {
             listener.onComplete(null);
             return;
         }
         
         bid.setStatus("pending");
-        // Don't set timestamp - let @ServerTimestamp handle it automatically
-        // bid.setTimestamp(null) would interfere with @ServerTimestamp annotation
-        
-        // First verify the job exists and is active before creating bid
+        checkJobThenCreateBid(bid, listener);
+    }
+    
+    private boolean isValidBid(Bid bid) {
+        if (bid == null) return false;
+        if (isEmpty(bid.getJobId()) || isEmpty(bid.getBidderId())) {
+            Log.e(TAG, "Bid missing required fields");
+            return false;
+        }
+        if (bid.getBidAmount() <= 0) {
+            Log.e(TAG, "Bid amount must be greater than zero");
+            return false;
+        }
+        String currentUserId = getCurrentUserId();
+        if (currentUserId == null || !currentUserId.equals(bid.getBidderId())) {
+            Log.e(TAG, "Bidder ID doesn't match authenticated user");
+            return false;
+        }
+        return true;
+    }
+    
+    private boolean isEmpty(String str) {
+        return str == null || str.isEmpty();
+    }
+    
+    private void checkJobThenCreateBid(Bid bid, OnCompleteListener<String> listener) {
         db.collection(COLLECTION_JOBS).document(bid.getJobId()).get()
                 .addOnSuccessListener(jobSnapshot -> {
-                    if (!jobSnapshot.exists()) {
-                        Log.e(TAG, "Cannot create bid: job does not exist - " + bid.getJobId());
+                    if (!isJobActive(jobSnapshot)) {
                         listener.onComplete(null);
                         return;
                     }
-                    
-                    String jobStatus = jobSnapshot.getString("status");
-                    if (!"active".equals(jobStatus)) {
-                        Log.e(TAG, "Cannot create bid: job is not active. Current status: " + jobStatus);
-                        listener.onComplete(null);
-                        return;
-                    }
-                    
-                    // Job exists and is active, proceed with bid creation
-                    // Verify user role before creating bid
-                    db.collection(COLLECTION_USERS).document(bid.getBidderId()).get()
-                            .addOnSuccessListener(userSnapshot -> {
-                                if (!userSnapshot.exists()) {
-                                    Log.e(TAG, "Cannot create bid: user document does not exist");
-                                    listener.onComplete(null);
-                                    return;
-                                }
-                                
-                                String userRole = userSnapshot.getString("role");
-                                Log.d(TAG, "User role from Firestore: " + userRole + ", bidderId: " + bid.getBidderId());
-                                
-                                // Normalize role to handle variations (labour, labourer, etc.)
-                                String normalizedRole = (userRole != null) ? userRole.toLowerCase().trim() : "";
-                                boolean isValidRole = "labour".equals(normalizedRole) || 
-                                                     "labourer".equals(normalizedRole) || 
-                                                     "agent".equals(normalizedRole);
-                                
-                                if (!isValidRole) {
-                                    Log.e(TAG, "Cannot create bid: user role is '" + userRole + "' but must be 'labour' or 'agent'");
-                                    listener.onComplete(null);
-                                    return;
-                                }
-                                
-                                Log.d(TAG, "Role validation passed: " + normalizedRole);
-                                
-                                // All checks passed, create the bid
-                                db.collection(COLLECTION_JOBS).document(bid.getJobId())
-                                        .collection(SUBCOLLECTION_BIDS).add(bid)
-                                        .addOnSuccessListener(documentReference -> {
-                                            Log.d(TAG, "Bid created successfully: " + documentReference.getId());
-                                            listener.onComplete(documentReference.getId());
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            Log.e(TAG, "Error creating bid in Firestore", e);
-                                            if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException) {
-                                                com.google.firebase.firestore.FirebaseFirestoreException firestoreException = 
-                                                    (com.google.firebase.firestore.FirebaseFirestoreException) e;
-                                                Log.e(TAG, "Error code: " + firestoreException.getCode() + ", Message: " + firestoreException.getMessage());
-                                                
-                                                if (firestoreException.getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                                                    Log.e(TAG, "Permission denied. Possible causes:");
-                                                    Log.e(TAG, "  - User role is not 'labour' or 'agent' (current: " + userRole + ")");
-                                                    Log.e(TAG, "  - bidderId doesn't match auth.uid");
-                                                    Log.e(TAG, "  - Job status is not 'active'");
-                                                    Log.e(TAG, "  - User document doesn't exist");
-                                                }
-                                            }
-                                            listener.onComplete(null);
-                                        });
-                            })
-                            .addOnFailureListener(e -> {
-                                Log.e(TAG, "Error checking user document", e);
-                                listener.onComplete(null);
-                            });
+                    checkUserRoleThenCreateBid(bid, listener);
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error checking job existence", e);
+                    Log.e(TAG, "Error checking job", e);
+                    listener.onComplete(null);
+                });
+    }
+    
+    private boolean isJobActive(com.google.firebase.firestore.DocumentSnapshot jobSnapshot) {
+        if (!jobSnapshot.exists()) {
+            Log.e(TAG, "Job does not exist");
+            return false;
+        }
+        String status = jobSnapshot.getString("status");
+        if (!"active".equals(status)) {
+            Log.e(TAG, "Job is not active. Status: " + status);
+            return false;
+        }
+        return true;
+    }
+    
+    private void checkUserRoleThenCreateBid(Bid bid, OnCompleteListener<String> listener) {
+        db.collection(COLLECTION_USERS).document(bid.getBidderId()).get()
+                .addOnSuccessListener(userSnapshot -> {
+                    if (!hasValidBidderRole(userSnapshot)) {
+                        listener.onComplete(null);
+                        return;
+                    }
+                    saveBidToFirestore(bid, listener);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error checking user role", e);
+                    listener.onComplete(null);
+                });
+    }
+    
+    public static boolean canPlaceBid(String role) {
+        if (role == null || role.isEmpty()) return false;
+        String roleLower = role.toLowerCase().trim();
+        return roleLower.equals("labour") || roleLower.equals("labourer") || roleLower.equals("agent");
+    }
+    
+    private boolean hasValidBidderRole(com.google.firebase.firestore.DocumentSnapshot userSnapshot) {
+        if (!userSnapshot.exists()) {
+            Log.e(TAG, "User document does not exist");
+            return false;
+        }
+        String role = userSnapshot.getString("role");
+        return canPlaceBid(role);
+    }
+    
+    private void saveBidToFirestore(Bid bid, OnCompleteListener<String> listener) {
+        db.collection(COLLECTION_JOBS).document(bid.getJobId())
+                .collection(SUBCOLLECTION_BIDS).add(bid)
+                .addOnSuccessListener(documentReference -> {
+                    Log.d(TAG, "Bid created: " + documentReference.getId());
+                    listener.onComplete(documentReference.getId());
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error saving bid", e);
                     listener.onComplete(null);
                 });
     }
@@ -489,18 +484,7 @@ public class FirestoreService {
                     listener.onComplete(true);
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error sending message", e);
-                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException) {
-                        com.google.firebase.firestore.FirebaseFirestoreException firestoreException = 
-                            (com.google.firebase.firestore.FirebaseFirestoreException) e;
-                        Log.e(TAG, "Error code: " + firestoreException.getCode() + ", Message: " + firestoreException.getMessage());
-                        if (firestoreException.getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
-                            Log.e(TAG, "Permission denied. Possible causes:");
-                            Log.e(TAG, "  - User not in chat userIds array");
-                            Log.e(TAG, "  - senderId (" + message.getSenderId() + ") doesn't match auth.uid (" + getCurrentUserId() + ")");
-                            Log.e(TAG, "  - Chat document might not exist yet");
-                        }
-                    }
+                    Log.e(TAG, "Error sending message: " + e.getMessage());
                     listener.onComplete(false);
                 });
     }
@@ -517,36 +501,29 @@ public class FirestoreService {
                 .orderBy("lastMessageTimestamp", Query.Direction.DESCENDING);
     }
 
-    /**
-     * Notifies the labourer that their bid has been accepted
-     * @param contractorId The ID of the contractor who accepted the bid
-     * @param bid The accepted bid
-     * @param jobTitle The title of the job
-     * @param listener Callback to indicate success/failure
-     */
     public void notifyBidAccepted(String contractorId, Bid bid, String jobTitle, OnCompleteListener<Boolean> listener) {
         if (contractorId == null || contractorId.isEmpty() || bid == null) {
             Log.e(TAG, "Cannot notify bid acceptance: invalid parameters");
-            listener.onComplete(false);
+            if (listener != null) listener.onComplete(false);
             return;
         }
-
-        // Determine the correct labourer ID: if agent bid, use labourerIdIfAgent, otherwise use bidderId
-        String labourerId = (bid.getLabourerIdIfAgent() != null && !bid.getLabourerIdIfAgent().isEmpty())
-                ? bid.getLabourerIdIfAgent()
-                : bid.getBidderId();
-
-        if (labourerId == null || labourerId.isEmpty()) {
-            Log.e(TAG, "Cannot notify bid acceptance: labourer ID is null or empty");
-            listener.onComplete(false);
-            return;
-        }
-
-        // Verify contractorId matches authenticated user
+        
         String currentUserId = getCurrentUserId();
         if (currentUserId == null || !currentUserId.equals(contractorId)) {
-            Log.e(TAG, "Cannot notify bid acceptance: contractorId (" + contractorId + ") doesn't match authenticated user (" + currentUserId + ")");
-            listener.onComplete(false);
+            Log.e(TAG, "Only the contractor can notify bid acceptance");
+            if (listener != null) listener.onComplete(false);
+            return;
+        }
+
+        String tempLabourerId = bid.getLabourerIdIfAgent();
+        if (tempLabourerId == null || tempLabourerId.isEmpty()) {
+            tempLabourerId = bid.getBidderId();
+        }
+        
+        final String labourerId = tempLabourerId;
+        if (labourerId == null || labourerId.isEmpty()) {
+            Log.e(TAG, "Cannot determine labourer ID from bid");
+            if (listener != null) listener.onComplete(false);
             return;
         }
 
@@ -554,7 +531,7 @@ public class FirestoreService {
         createChat(contractorId, labourerId, chatId -> {
             if (chatId == null || chatId.isEmpty()) {
                 Log.e(TAG, "Failed to create/get chat for bid acceptance notification");
-                listener.onComplete(false);
+                if (listener != null) listener.onComplete(false);
                 return;
             }
 
@@ -571,7 +548,7 @@ public class FirestoreService {
                 } else {
                     Log.e(TAG, "Failed to send bid acceptance notification message");
                 }
-                listener.onComplete(success);
+                if (listener != null) listener.onComplete(success);
             });
         });
     }

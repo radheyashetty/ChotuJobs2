@@ -87,13 +87,20 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
+        if (chatId == null || chatId.isEmpty()) {
+            Toast.makeText(this, "Chat ID is missing", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
         if (currentUser == null) {
             Toast.makeText(this, "You must be logged in to send messages", Toast.LENGTH_SHORT).show();
             return;
         }
+        
         String senderId = currentUser.getUid();
-        Message message = new Message(senderId, receiverId, messageText);
+        String receiver = receiverId != null ? receiverId : "";
+        Message message = new Message(senderId, receiver, messageText);
 
         firestoreService.sendMessage(chatId, message, success -> {
             if (success) {
@@ -106,7 +113,6 @@ public class ChatActivity extends AppCompatActivity {
 
     private void listenForMessages() {
         if (chatId == null) {
-            Log.e("ChatActivity", "Chat ID is null, cannot listen for messages.");
             Toast.makeText(this, "Chat ID is missing", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -114,15 +120,10 @@ public class ChatActivity extends AppCompatActivity {
         messageListener = firestoreService.getMessages(chatId)
                 .addSnapshotListener((snapshots, e) -> {
                     if (e != null) {
-                        Log.e("ChatActivity", "Listen failed.", e);
-                        Toast.makeText(ChatActivity.this, "Error loading messages: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(ChatActivity.this, "Error loading messages", Toast.LENGTH_SHORT).show();
                         return;
                     }
-
-                    if (snapshots == null) {
-                        Log.w("ChatActivity", "Snapshot is null");
-                        return;
-                    }
+                    if (snapshots == null) return;
 
                     // Handle initial load and updates
                     for (DocumentChange dc : snapshots.getDocumentChanges()) {
@@ -137,7 +138,6 @@ public class ChatActivity extends AppCompatActivity {
                         
                         switch (dc.getType()) {
                             case ADDED:
-                                // Check if message already exists to avoid duplicates
                                 boolean exists = false;
                                 for (Message m : messageList) {
                                     if (docId.equals(m.getMessageId())) {
@@ -149,7 +149,7 @@ public class ChatActivity extends AppCompatActivity {
                                     messageList.add(message);
                                     adapter.notifyItemInserted(messageList.size() - 1);
                                     binding.recyclerView.post(() -> {
-                                        if (messageList.size() > 0) {
+                                        if (!messageList.isEmpty()) {
                                             binding.recyclerView.scrollToPosition(messageList.size() - 1);
                                         }
                                         updateEmptyState();

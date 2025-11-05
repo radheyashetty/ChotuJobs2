@@ -81,7 +81,9 @@ public class ContractorJobAdapter extends ListAdapter<Job, ContractorJobAdapter.
             
             binding.titleTextView.setText(job.getTitle() != null ? job.getTitle() : "");
             binding.categoryTextView.setText(job.getCategory() != null ? job.getCategory() : "");
-            String status = job.getStatus() != null ? job.getStatus().toUpperCase() : "UNKNOWN";
+            String status = job.getStatus() != null && !job.getStatus().isEmpty() 
+                    ? job.getStatus().toUpperCase() 
+                    : "UNKNOWN";
             binding.statusTextView.setText("Status: " + status);
             binding.dateTextView.setText("Start: " + (job.getStartDate() != null ? job.getStartDate() : ""));
             binding.locationTextView.setText("Location: " + (job.getLocation() != null ? job.getLocation() : ""));

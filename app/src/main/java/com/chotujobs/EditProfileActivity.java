@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -14,6 +13,7 @@ import com.chotujobs.databinding.ActivityEditProfileBinding;
 import com.chotujobs.models.User;
 import com.chotujobs.services.FirestoreService;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import java.util.Arrays;
@@ -36,12 +36,13 @@ public class EditProfileActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         firestoreService = FirestoreService.getInstance();
-        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+        FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+        if (currentUser == null) {
             Toast.makeText(this, "Please log in again.", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
-        userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        userId = currentUser.getUid();
 
         loadUserProfile();
 
@@ -64,37 +65,21 @@ public class EditProfileActivity extends AppCompatActivity {
 
     private void uploadImage(Uri imageUri, OnImageUploadListener listener) {
         if (imageUri == null) {
-            Log.e("EditProfileActivity", "Image URI is null");
             listener.onSuccess(null);
             return;
         }
         
         StorageReference storageRef = FirebaseStorage.getInstance().getReference().child("profile_images/" + userId + ".jpg");
-        Log.d("EditProfileActivity", "Uploading image to: profile_images/" + userId + ".jpg");
-        
         storageRef.putFile(imageUri)
-                .addOnSuccessListener(taskSnapshot -> {
-                    Log.d("EditProfileActivity", "Image upload successful, getting download URL");
-                    storageRef.getDownloadUrl()
-                            .addOnSuccessListener(uri -> {
-                                String imageUrl = uri.toString();
-                                Log.d("EditProfileActivity", "Download URL obtained: " + imageUrl);
-                                listener.onSuccess(imageUrl);
-                            })
-                            .addOnFailureListener(e -> {
-                                Log.e("EditProfileActivity", "Failed to get download URL", e);
-                                Toast.makeText(this, "Failed to get image URL: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                                listener.onSuccess(null);
-                            });
-                })
+                .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl()
+                        .addOnSuccessListener(uri -> listener.onSuccess(uri.toString()))
+                        .addOnFailureListener(e -> {
+                            Toast.makeText(this, "Failed to get image URL", Toast.LENGTH_SHORT).show();
+                            listener.onSuccess(null);
+                        }))
                 .addOnFailureListener(e -> {
-                    Log.e("EditProfileActivity", "Failed to upload image", e);
-                    Toast.makeText(this, "Failed to upload image: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Failed to upload image", Toast.LENGTH_SHORT).show();
                     listener.onSuccess(null);
-                })
-                .addOnProgressListener(snapshot -> {
-                    double progress = (100.0 * snapshot.getBytesTransferred()) / snapshot.getTotalByteCount();
-                    Log.d("EditProfileActivity", "Upload progress: " + progress + "%");
                 });
     }
 
@@ -173,12 +158,7 @@ public class EditProfileActivity extends AppCompatActivity {
                 binding.btnSave.setEnabled(true);
                 binding.btnSave.setText("Save");
                 if (imageUrl != null && !imageUrl.isEmpty()) {
-                    Log.d("EditProfileActivity", "Image URL saved: " + imageUrl);
                     updates.put("profileImageUrl", imageUrl);
-                    Toast.makeText(this, "Image uploaded successfully", Toast.LENGTH_SHORT).show();
-                } else {
-                    Log.w("EditProfileActivity", "Image upload failed, saving profile without image");
-                    Toast.makeText(this, "Image upload failed, saving profile without image", Toast.LENGTH_LONG).show();
                 }
                 updateUser(updates);
             });
@@ -188,16 +168,12 @@ public class EditProfileActivity extends AppCompatActivity {
     }
 
     private void updateUser(Map<String, Object> updates) {
-        Log.d("EditProfileActivity", "Updating user profile with: " + updates.keySet());
         firestoreService.updateUserProfile(userId, updates, success -> {
             if (success) {
-                Log.d("EditProfileActivity", "Profile updated successfully");
                 Toast.makeText(this, "Profile updated successfully", Toast.LENGTH_SHORT).show();
-                // Set result to refresh profile fragment
                 setResult(RESULT_OK);
                 finish();
             } else {
-                Log.e("EditProfileActivity", "Failed to update profile");
                 Toast.makeText(this, "Failed to update profile", Toast.LENGTH_SHORT).show();
             }
         });

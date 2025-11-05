@@ -75,13 +75,9 @@ public class JobDetailsDialogFragment extends DialogFragment {
             if (!isAdded()) return;
             if (job != null) {
                 currentJob = job;
-                binding.jobTitleTextView.setText(job.getTitle());
-                String jobDetails = "Category: " + job.getCategory() + "\n" +
-                        "Start Date: " + job.getStartDate() + "\n" +
-                        "Location: " + job.getLocation() + "\n" +
-                        "Requirements: " + job.getRequirements() + "\n" +
-                        "Expected Amount: " + job.getBidLimit();
-                binding.jobDetailsTextView.setText(jobDetails);
+                binding.jobTitleTextView.setText(job.getTitle() != null ? job.getTitle() : "");
+                String details = buildJobDetails(job);
+                binding.jobDetailsTextView.setText(details);
 
                 AlertDialog dialog = (AlertDialog) getDialog();
                 if (dialog != null) {
@@ -107,7 +103,7 @@ public class JobDetailsDialogFragment extends DialogFragment {
     }
 
     private void loadUsersAndDisplayBids() {
-        if (allBids.isEmpty()) {
+        if (allBids == null || allBids.isEmpty()) {
             displayBids();
             return;
         }
@@ -123,7 +119,9 @@ public class JobDetailsDialogFragment extends DialogFragment {
             if (!isAdded()) return;
             userMap.clear();
             for (User user : users) {
-                userMap.put(user.getUserId(), user);
+                if (user != null && user.getUserId() != null) {
+                    userMap.put(user.getUserId(), user);
+                }
             }
             displayBids();
         });
@@ -154,7 +152,9 @@ public class JobDetailsDialogFragment extends DialogFragment {
     }
 
     private void showBidderDetailsDialog(Bid bid) {
-        if (!isAdded()) return;
+        if (!isAdded() || bid == null) return;
+        if (bid.getBidderId() == null) return;
+        
         User bidder = userMap.get(bid.getBidderId());
         if (bidder != null) {
             BidderDetailsDialogFragment dialog = BidderDetailsDialogFragment.newInstance(bid, bidder);
@@ -164,7 +164,8 @@ public class JobDetailsDialogFragment extends DialogFragment {
     }
 
     private void showConfirmRejectDialog(Bid bid) {
-        if (!isAdded()) return;
+        if (!isAdded() || bid == null || bid.getBidId() == null) return;
+        
         new AlertDialog.Builder(requireContext())
                 .setTitle("Confirm Rejection")
                 .setMessage("Are you sure you want to reject this bid?")
@@ -184,7 +185,8 @@ public class JobDetailsDialogFragment extends DialogFragment {
     }
 
     private void showConfirmWinnerDialog(Bid bid) {
-        if (!isAdded()) return;
+        if (!isAdded() || bid == null || bid.getBidId() == null || currentJob == null) return;
+        
         new AlertDialog.Builder(requireContext())
                 .setTitle("Confirm Winner")
                 .setMessage("Mark this bid as winner? This will close the job and notify the labourer.")
@@ -192,23 +194,16 @@ public class JobDetailsDialogFragment extends DialogFragment {
                     firestoreService.updateBidStatus(jobId, bid.getBidId(), "accepted", success -> {
                         if (!isAdded()) return;
                         if (success) {
-                            firestoreService.updateJobStatus(jobId, "closed", bid.getBidderId(), updateSuccess -> {
+                            String winnerId = bid.getBidderId() != null ? bid.getBidderId() : "";
+                            firestoreService.updateJobStatus(jobId, "closed", winnerId, updateSuccess -> {
                                 if (!isAdded()) return;
                                 if (updateSuccess) {
                                     CSVExporter.exportJobToCSV(currentJob, bid, allBids, userMap, getContext());
                                     
-                                    // Notify the labourer that their bid was accepted
-                                    String contractorId = currentJob != null ? currentJob.getContractorId() : null;
-                                    String jobTitle = currentJob != null ? currentJob.getTitle() : null;
+                                    String contractorId = currentJob.getContractorId();
                                     if (contractorId != null && !contractorId.isEmpty()) {
-                                        firestoreService.notifyBidAccepted(contractorId, bid, jobTitle, notified -> {
-                                            if (!isAdded()) return;
-                                            if (notified) {
-                                                Log.d("JobDetailsDialog", "Labourer notified successfully");
-                                            } else {
-                                                Log.w("JobDetailsDialog", "Failed to notify labourer, but bid was accepted");
-                                            }
-                                        });
+                                        String jobTitle = currentJob.getTitle() != null ? currentJob.getTitle() : "";
+                                        firestoreService.notifyBidAccepted(contractorId, bid, jobTitle, notified -> {});
                                     }
                                     
                                     Toast.makeText(getContext(), "Winner selected! Labourer notified. CSV saved.", Toast.LENGTH_SHORT).show();
@@ -228,6 +223,15 @@ public class JobDetailsDialogFragment extends DialogFragment {
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private String buildJobDetails(Job job) {
+        if (job == null) return "";
+        return "Category: " + (job.getCategory() != null ? job.getCategory() : "") + "\n" +
+                "Start Date: " + (job.getStartDate() != null ? job.getStartDate() : "") + "\n" +
+                "Location: " + (job.getLocation() != null ? job.getLocation() : "") + "\n" +
+                "Requirements: " + (job.getRequirements() != null ? job.getRequirements() : "") + "\n" +
+                "Expected Amount: " + job.getBidLimit();
     }
 
     public void setJobClosedListener(Runnable listener) {

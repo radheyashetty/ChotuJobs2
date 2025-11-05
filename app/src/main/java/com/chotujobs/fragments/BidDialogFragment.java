@@ -51,13 +51,13 @@ public class BidDialogFragment extends DialogFragment {
 
         binding = DialogBidBinding.inflate(requireActivity().getLayoutInflater());
 
-        if ("agent".equals(userType)) {
-            binding.labourerSpinner.setVisibility(View.VISIBLE);
-            binding.labourerLabel.setVisibility(View.VISIBLE);
+        boolean isAgent = "agent".equalsIgnoreCase(userType);
+        int visibility = isAgent ? View.VISIBLE : View.GONE;
+        binding.labourerSpinner.setVisibility(visibility);
+        binding.labourerLabel.setVisibility(visibility);
+        
+        if (isAgent) {
             setupLabourerSpinner();
-        } else {
-            binding.labourerSpinner.setVisibility(View.GONE);
-            binding.labourerLabel.setVisibility(View.GONE);
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
@@ -78,93 +78,102 @@ public class BidDialogFragment extends DialogFragment {
     }
 
     private void setupLabourerSpinner() {
-        firestoreService.getUsersByRole("labour", users -> {
+        firestoreService.getLabourers(users -> {
             if (getContext() != null && users != null && !users.isEmpty()) {
                 ArrayAdapter<User> adapter = new ArrayAdapter<>(
                         getContext(), android.R.layout.simple_spinner_item, users);
                 adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                 binding.labourerSpinner.setAdapter(adapter);
+            } else if (getContext() != null) {
+                Toast.makeText(getContext(), "No labourers available", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void handleBidSubmit() {
-        if (getContext() == null) {
-            return;
-        }
+        if (getContext() == null) return;
         
-        // Validate required fields
-        if (jobId == null || jobId.isEmpty()) {
-            Toast.makeText(getContext(), "Job ID is missing", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (bidderId == null || bidderId.isEmpty()) {
-            Toast.makeText(getContext(), "Bidder ID is missing", Toast.LENGTH_SHORT).show();
-            return;
-        }
+        if (!areIdsValid()) return;
         
+        Double bidAmount = getValidBidAmount();
+        if (bidAmount == null) return;
+        
+        Bid bid = createBidObject(bidAmount);
+        if (bid == null) return;
+        
+        submitBid(bid);
+    }
+    
+    private boolean areIdsValid() {
+        if (isEmpty(jobId)) {
+            showToast("Job ID is missing");
+            return false;
+        }
+        if (isEmpty(bidderId)) {
+            showToast("Bidder ID is missing");
+            return false;
+        }
+        return true;
+    }
+    
+    private Double getValidBidAmount() {
+        String amountStr = binding.bidAmountEditText.getText().toString().trim();
+        if (amountStr.isEmpty()) {
+            showToast("Please enter bid amount");
+            return null;
+        }
         try {
-            String amountStr = binding.bidAmountEditText.getText().toString().trim();
-            if (amountStr.isEmpty()) {
-                Toast.makeText(getContext(), "Please enter bid amount", Toast.LENGTH_SHORT).show();
-                return;
+            double amount = Double.parseDouble(amountStr);
+            if (amount <= 0) {
+                showToast("Bid amount must be greater than zero");
+                return null;
             }
-
-            double bidAmount = Double.parseDouble(amountStr);
-            if (bidAmount <= 0) {
-                Toast.makeText(getContext(), "Bid amount must be greater than zero", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            Bid bid = new Bid();
-            bid.setJobId(jobId);
-            bid.setBidderId(bidderId);
-            bid.setBidAmount(bidAmount);
-
-            if ("agent".equals(userType)) {
-                User selectedLabourer = (User) binding.labourerSpinner.getSelectedItem();
-                if (selectedLabourer != null && selectedLabourer.getUserId() != null) {
-                    bid.setLabourerIdIfAgent(selectedLabourer.getUserId());
-                } else {
-                    Toast.makeText(getContext(), "Please select a labourer", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-            }
-
-            firestoreService.createBid(bid, bidId -> {
-                if (getDialog() != null && getContext() != null) {
-                    if (bidId != null) {
-                        Toast.makeText(getContext(), "Bid placed successfully!", Toast.LENGTH_SHORT).show();
-                        if (bidListener != null) {
-                            bidListener.run();
-                        }
-                        dismiss();
-                    } else {
-                        // Check actual user role from Firestore for better error message
-                        firestoreService.getUserProfile(bidderId, user -> {
-                            if (getDialog() != null && getContext() != null) {
-                                String errorMsg = "Cannot place bid. ";
-                                if (user != null && user.getRole() != null) {
-                                    String role = user.getRole().toLowerCase();
-                                    if (!"labour".equals(role) && !"labourer".equals(role) && !"agent".equals(role)) {
-                                        errorMsg += "Your role is '" + user.getRole() + "'. You must be 'labour' or 'agent'. ";
-                                    } else {
-                                        errorMsg += "Please check if the job is active. ";
-                                    }
-                                } else {
-                                    errorMsg += "Please check your role and if the job is active. ";
-                                }
-                                Toast.makeText(getContext(), errorMsg, Toast.LENGTH_LONG).show();
-                            }
-                        });
-                    }
-                }
-            });
+            return amount;
         } catch (NumberFormatException e) {
-            Toast.makeText(getContext(), "Invalid bid amount. Please enter a valid number.", Toast.LENGTH_SHORT).show();
-        } catch (Exception e) {
-            Toast.makeText(getContext(), "Error placing bid: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            showToast("Invalid bid amount. Please enter a valid number.");
+            return null;
         }
+    }
+    
+    private Bid createBidObject(double bidAmount) {
+        Bid bid = new Bid();
+        bid.setJobId(jobId);
+        bid.setBidderId(bidderId);
+        bid.setBidAmount(bidAmount);
+        
+        if ("agent".equalsIgnoreCase(userType)) {
+            User selectedLabourer = (User) binding.labourerSpinner.getSelectedItem();
+            if (selectedLabourer == null || selectedLabourer.getUserId() == null || selectedLabourer.getUserId().isEmpty()) {
+                showToast("Please select a labourer to bid for");
+                return null;
+            }
+            bid.setLabourerIdIfAgent(selectedLabourer.getUserId());
+        }
+        return bid;
+    }
+    
+    private void submitBid(Bid bid) {
+        firestoreService.createBid(bid, bidId -> {
+            if (getDialog() == null || getContext() == null) return;
+            
+            if (bidId != null) {
+                showToast("Bid placed successfully!");
+                if (bidListener != null) bidListener.run();
+                dismiss();
+            } else {
+                showToast("Cannot place bid. Check if the job is active and you have permission.");
+            }
+        });
+    }
+    
+    private void showToast(String message) {
+        if (getContext() != null) {
+            Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+        }
+    }
+    
+    private boolean isEmpty(String str) {
+        return str == null || str.isEmpty();
     }
 
     public void setBidListener(Runnable listener) {

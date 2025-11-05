@@ -131,7 +131,8 @@ public class CreateJobActivity extends AppCompatActivity {
             return;
         }
         String title = binding.titleEditText.getText().toString().trim();
-        String category = binding.categorySpinner.getSelectedItem().toString();
+        Object selectedCategory = binding.categorySpinner.getSelectedItem();
+        String category = selectedCategory != null ? selectedCategory.toString() : "Other";
         String startDate = binding.startDateEditText.getText().toString().trim();
         String location = binding.locationEditText.getText().toString().trim();
         String requirements = binding.requirementsEditText.getText().toString().trim();

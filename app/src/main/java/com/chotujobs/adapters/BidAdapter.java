@@ -83,20 +83,26 @@ public class BidAdapter extends ListAdapter<Bid, BidAdapter.BidViewHolder> {
         }
 
         public void bind(Bid bid) {
-            User bidder = userMap.get(bid.getBidderId());
-            if (bidder != null) {
-                String bidderName = bidder.getName();
-                if (bid.getLabourerIdIfAgent() != null) {
-                    User labourer = userMap.get(bid.getLabourerIdIfAgent());
-                    if (labourer != null) {
-                        bidderName += " (for " + labourer.getName() + ")";
+            if (bid == null) return;
+            
+            String bidderName = "Unknown";
+            if (bid.getBidderId() != null) {
+                User bidder = userMap.get(bid.getBidderId());
+                if (bidder != null && bidder.getName() != null) {
+                    bidderName = bidder.getName();
+                    if (bid.getLabourerIdIfAgent() != null) {
+                        User labourer = userMap.get(bid.getLabourerIdIfAgent());
+                        if (labourer != null && labourer.getName() != null) {
+                            bidderName += " (for " + labourer.getName() + ")";
+                        }
                     }
                 }
-                binding.bidderNameTextView.setText(bidderName);
             }
+            binding.bidderNameTextView.setText(bidderName);
 
             binding.bidAmountTextView.setText("Bid: ₹" + bid.getBidAmount());
-            binding.bidStatusTextView.setText("Status: " + bid.getStatus());
+            String status = bid.getStatus() != null ? bid.getStatus() : "pending";
+            binding.bidStatusTextView.setText("Status: " + status);
 
             boolean isPending = "pending".equals(bid.getStatus());
             binding.acceptBidButton.setVisibility(isPending ? View.VISIBLE : View.GONE);
