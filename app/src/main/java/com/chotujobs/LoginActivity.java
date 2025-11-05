@@ -12,6 +12,7 @@ import com.chotujobs.models.User;
 import com.chotujobs.services.FirestoreService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
 import java.util.concurrent.TimeUnit;
@@ -238,25 +239,56 @@ public class LoginActivity extends AppCompatActivity {
     private void promptForRole(String email, String password) {
         updateUi(UiState.ROLE_SELECTION);
         binding.btnAction.setOnClickListener(v -> {
+            if (binding.roleSpinner.getSelectedItem() == null) {
+                Toast.makeText(this, "Please select a role", Toast.LENGTH_SHORT).show();
+                return;
+            }
             String role = binding.roleSpinner.getSelectedItem().toString().toLowerCase();
             binding.progressBar.setVisibility(View.VISIBLE);
             binding.btnAction.setEnabled(false);
-            if (getCurrentUiState() == UiState.EMAIL_LOGIN) {
+            
+            // Check if we're in email login flow (need to create account) or phone (already authenticated)
+            UiState currentState = getCurrentUiState();
+            if (email != null && password != null && !email.isEmpty() && !password.isEmpty()) {
+                // Email signup flow
                 auth.createUserWithEmailAndPassword(email, password)
                         .addOnCompleteListener(this, task -> {
                             if (task.isSuccessful()) {
-                                String newUid = auth.getCurrentUser().getUid();
-                                User user = new User(email.split("@")[0], email, role);
-                                createUserProfile(user, newUid, role);
+                                String newUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : null;
+                                if (newUid != null) {
+                                    String name = email.contains("@") ? email.split("@")[0] : email;
+                                    User user = new User(name, email, role);
+                                    createUserProfile(user, newUid, role);
+                                } else {
+                                    Toast.makeText(this, "Failed to get user ID", Toast.LENGTH_SHORT).show();
+                                    updateUi(UiState.EMAIL_LOGIN);
+                                }
                             } else {
-                                Toast.makeText(this, "Authentication failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                binding.progressBar.setVisibility(View.GONE);
+                                binding.btnAction.setEnabled(true);
+                                Toast.makeText(this, "Authentication failed: " + (task.getException() != null ? task.getException().getMessage() : "Unknown error"), Toast.LENGTH_SHORT).show();
                                 updateUi(UiState.EMAIL_LOGIN);
                             }
                         });
             } else {
-                String uid = auth.getCurrentUser().getUid();
-                User user = new User(auth.getCurrentUser().getPhoneNumber(), auth.getCurrentUser().getPhoneNumber(), role, true);
-                createUserProfile(user, uid, role);
+                // Phone authentication flow (already authenticated)
+                FirebaseUser currentUser = auth.getCurrentUser();
+                if (currentUser != null) {
+                    String uid = currentUser.getUid();
+                    String phoneNumber = currentUser.getPhoneNumber();
+                    if (phoneNumber != null) {
+                        User user = new User(phoneNumber, phoneNumber, role, true);
+                        createUserProfile(user, uid, role);
+                    } else {
+                        Toast.makeText(this, "Phone number not available", Toast.LENGTH_SHORT).show();
+                        binding.progressBar.setVisibility(View.GONE);
+                        binding.btnAction.setEnabled(true);
+                    }
+                } else {
+                    Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+                    binding.progressBar.setVisibility(View.GONE);
+                    binding.btnAction.setEnabled(true);
+                }
             }
         });
     }

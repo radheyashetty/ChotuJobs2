@@ -35,7 +35,8 @@ public class ContractorFragment extends Fragment {
 
         firestoreService = FirestoreService.getInstance();
         SharedPreferences prefs = requireContext().getSharedPreferences("chotujobs_prefs", 0);
-        currentUserId = prefs.getString("user_id", "");
+        String authUserId = firestoreService.getCurrentUserId();
+        currentUserId = authUserId != null ? authUserId : prefs.getString("user_id", "");
 
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 

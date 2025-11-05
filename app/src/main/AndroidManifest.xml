@@ -17,6 +17,8 @@
     
     <!-- Camera permission -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Declare camera as not required to avoid excluding ChromeOS/large screens -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
         android:allowBackup="true"

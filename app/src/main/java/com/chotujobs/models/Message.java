@@ -4,6 +4,7 @@ import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;
 
 public class Message {
+    private String messageId;
     private String senderId;
     private String receiverId;
     private String message;
@@ -49,11 +50,11 @@ public class Message {
         this.timestamp = timestamp;
     }
 
-    public void setTimestamp(Long timestamp) {
-        if (timestamp != null) {
-            this.timestamp = new Date(timestamp);
-        } else {
-            this.timestamp = null;
-        }
+    public String getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(String messageId) {
+        this.messageId = messageId;
     }
 }

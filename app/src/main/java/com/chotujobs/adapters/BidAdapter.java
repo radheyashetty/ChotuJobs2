@@ -31,14 +31,21 @@ public class BidAdapter extends ListAdapter<Bid, BidAdapter.BidViewHolder> {
     private static final DiffUtil.ItemCallback<Bid> DIFF_CALLBACK = new DiffUtil.ItemCallback<Bid>() {
         @Override
         public boolean areItemsTheSame(@NonNull Bid oldItem, @NonNull Bid newItem) {
-            return oldItem.getBidId().equals(newItem.getBidId());
+            return safeEquals(oldItem.getBidId(), newItem.getBidId());
         }
 
         @Override
         public boolean areContentsTheSame(@NonNull Bid oldItem, @NonNull Bid newItem) {
-            return oldItem.equals(newItem);
+            return oldItem.getBidAmount() == newItem.getBidAmount()
+                    && safeEquals(oldItem.getStatus(), newItem.getStatus())
+                    && safeEquals(oldItem.getBidderId(), newItem.getBidderId())
+                    && safeEquals(oldItem.getLabourerIdIfAgent(), newItem.getLabourerIdIfAgent());
         }
     };
+
+    private static boolean safeEquals(Object a, Object b) {
+        return a == b || (a != null && a.equals(b));
+    }
 
     @NonNull
     @Override

@@ -56,15 +56,16 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
         }
 
         public void bind(Chat chat) {
+            if (chat == null) return;
+            
             FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-            if (currentUser == null) {
-                // Handle not logged in case
+            if (currentUser == null || chat.getUserIds() == null) {
                 return;
             }
             String currentUserId = currentUser.getUid();
             String otherUserId = "";
             for (String userId : chat.getUserIds()) {
-                if (!userId.equals(currentUserId)) {
+                if (userId != null && !userId.equals(currentUserId)) {
                     otherUserId = userId;
                     break;
                 }
@@ -72,23 +73,30 @@ public class ChatsAdapter extends RecyclerView.Adapter<ChatsAdapter.ChatViewHold
 
             if (!otherUserId.isEmpty()) {
                 User user = userMap.get(otherUserId);
-                if (user != null) {
+                if (user != null && user.getName() != null) {
                     binding.userNameTextView.setText(user.getName());
                     if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isEmpty()) {
                         Glide.with(itemView.getContext()).load(user.getProfileImageUrl()).into(binding.profileImageView);
                     }
+                } else {
+                    binding.userNameTextView.setText("Unknown User");
                 }
+            } else {
+                binding.userNameTextView.setText("Chat");
             }
 
-            binding.lastMessageTextView.setText(chat.getLastMessage());
+            binding.lastMessageTextView.setText(chat.getLastMessage() != null ? chat.getLastMessage() : "");
 
             final String finalOtherUserId = otherUserId;
-            itemView.setOnClickListener(v -> {
-                Intent intent = new Intent(itemView.getContext(), ChatActivity.class);
-                intent.putExtra("chatId", chat.getChatId());
-                intent.putExtra("receiverId", finalOtherUserId);
-                itemView.getContext().startActivity(intent);
-            });
+            final String chatId = chat.getChatId();
+            if (chatId != null && !chatId.isEmpty()) {
+                itemView.setOnClickListener(v -> {
+                    Intent intent = new Intent(itemView.getContext(), ChatActivity.class);
+                    intent.putExtra("chatId", chatId);
+                    intent.putExtra("receiverId", finalOtherUserId);
+                    itemView.getContext().startActivity(intent);
+                });
+            }
         }
     }
 }

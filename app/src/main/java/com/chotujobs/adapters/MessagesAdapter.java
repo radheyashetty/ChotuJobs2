@@ -27,8 +27,13 @@ public class MessagesAdapter extends RecyclerView.Adapter<MessagesAdapter.Messag
 
     @Override
     public int getItemViewType(int position) {
+        if (position < 0 || position >= messageList.size()) {
+            return VIEW_TYPE_RECEIVED;
+        }
         FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-        if (currentUser != null && messageList.get(position).getSenderId().equals(currentUser.getUid())) {
+        Message message = messageList.get(position);
+        if (currentUser != null && message != null && message.getSenderId() != null 
+                && message.getSenderId().equals(currentUser.getUid())) {
             return VIEW_TYPE_SENT;
         } else {
             return VIEW_TYPE_RECEIVED;
@@ -67,7 +72,11 @@ public class MessagesAdapter extends RecyclerView.Adapter<MessagesAdapter.Messag
         }
 
         public void bind(Message message) {
-            messageTextView.setText(message.getMessage());
+            if (message != null && message.getMessage() != null) {
+                messageTextView.setText(message.getMessage());
+            } else {
+                messageTextView.setText("");
+            }
         }
     }
 }

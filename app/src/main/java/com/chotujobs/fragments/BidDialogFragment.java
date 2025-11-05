@@ -63,10 +63,18 @@ public class BidDialogFragment extends DialogFragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setView(binding.getRoot())
                 .setTitle("Place Bid")
-                .setPositiveButton("Submit", (dialog, which) -> handleBidSubmit())
+                .setPositiveButton("Submit", null)
                 .setNegativeButton("Cancel", null);
 
-        return builder.create();
+        AlertDialog dialog = builder.create();
+        dialog.setOnShowListener(d -> {
+            android.widget.Button positive = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            if (positive != null) {
+                positive.setOnClickListener(v -> handleBidSubmit());
+            }
+        });
+
+        return dialog;
     }
 
     private void setupLabourerSpinner() {
@@ -84,6 +92,17 @@ public class BidDialogFragment extends DialogFragment {
         if (getContext() == null) {
             return;
         }
+        
+        // Validate required fields
+        if (jobId == null || jobId.isEmpty()) {
+            Toast.makeText(getContext(), "Job ID is missing", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (bidderId == null || bidderId.isEmpty()) {
+            Toast.makeText(getContext(), "Bidder ID is missing", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
         try {
             String amountStr = binding.bidAmountEditText.getText().toString().trim();
             if (amountStr.isEmpty()) {
@@ -92,6 +111,10 @@ public class BidDialogFragment extends DialogFragment {
             }
 
             double bidAmount = Double.parseDouble(amountStr);
+            if (bidAmount <= 0) {
+                Toast.makeText(getContext(), "Bid amount must be greater than zero", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
             Bid bid = new Bid();
             bid.setJobId(jobId);
@@ -100,7 +123,7 @@ public class BidDialogFragment extends DialogFragment {
 
             if ("agent".equals(userType)) {
                 User selectedLabourer = (User) binding.labourerSpinner.getSelectedItem();
-                if (selectedLabourer != null) {
+                if (selectedLabourer != null && selectedLabourer.getUserId() != null) {
                     bid.setLabourerIdIfAgent(selectedLabourer.getUserId());
                 } else {
                     Toast.makeText(getContext(), "Please select a labourer", Toast.LENGTH_SHORT).show();
@@ -109,12 +132,27 @@ public class BidDialogFragment extends DialogFragment {
             }
 
             firestoreService.createBid(bid, bidId -> {
-                if (bidId != null && bidListener != null) {
-                    bidListener.run();
+                if (getDialog() != null && getContext() != null) {
+                    if (bidId != null) {
+                        Toast.makeText(getContext(), "Bid placed successfully!", Toast.LENGTH_SHORT).show();
+                        if (bidListener != null) {
+                            bidListener.run();
+                        }
+                        dismiss();
+                    } else {
+                        String errorMsg = "Failed to place bid. ";
+                        if (userType == null || (!userType.equals("labour") && !userType.equals("agent"))) {
+                            errorMsg += "Your role must be 'labour' or 'agent'. ";
+                        }
+                        errorMsg += "Check if job is active and you have permission.";
+                        Toast.makeText(getContext(), errorMsg, Toast.LENGTH_LONG).show();
+                    }
                 }
             });
         } catch (NumberFormatException e) {
-            Toast.makeText(getContext(), "Invalid bid amount", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Invalid bid amount. Please enter a valid number.", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "Error placing bid: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 

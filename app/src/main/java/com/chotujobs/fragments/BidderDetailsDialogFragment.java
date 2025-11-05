@@ -63,22 +63,31 @@ public class BidderDetailsDialogFragment extends DialogFragment {
             if (bidder.getProfileImageUrl() != null && !bidder.getProfileImageUrl().isEmpty()) {
                 Glide.with(this).load(bidder.getProfileImageUrl()).into(binding.profileImageView);
             }
-            binding.bidderNameTextView.setText(bidder.getName());
-            if (bidder.getEmail() != null) {
+            binding.bidderNameTextView.setText(bidder.getName() != null ? bidder.getName() : "Unknown");
+            if (bidder.getEmail() != null && !bidder.getEmail().isEmpty()) {
                 binding.bidderContactTextView.setText(bidder.getEmail());
-            } else {
+            } else if (bidder.getPhone() != null && !bidder.getPhone().isEmpty()) {
                 binding.bidderContactTextView.setText(bidder.getPhone());
+            } else {
+                binding.bidderContactTextView.setText("Not set");
             }
+        } else {
+            binding.bidderNameTextView.setText("Unknown");
+            binding.bidderContactTextView.setText("Not available");
         }
 
         if (bid != null) {
             binding.bidAmountTextView.setText("Bid Amount: ₹" + bid.getBidAmount());
+        } else {
+            binding.bidAmountTextView.setText("Bid Amount: N/A");
         }
 
         binding.btnSelectWinner.setOnClickListener(v -> {
-            if (listener != null) {
+            if (listener != null && bid != null) {
                 listener.onWinnerSelected(bid);
                 dismiss();
+            } else {
+                Toast.makeText(getContext(), "Bid information is missing", Toast.LENGTH_SHORT).show();
             }
         });
 

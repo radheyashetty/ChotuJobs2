@@ -3,10 +3,12 @@ package com.chotujobs.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.google.firebase.firestore.Exclude;
 import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;
 
 public class Bid implements Parcelable {
+    @Exclude
     private String bidId;
     private String jobId;
     private String bidderId; // The user who placed the bid (labourer or agent)
@@ -110,13 +112,5 @@ public class Bid implements Parcelable {
 
     public void setTimestamp(Date timestamp) {
         this.timestamp = timestamp;
-    }
-
-    public void setTimestamp(Long timestamp) {
-        if (timestamp != null) {
-            this.timestamp = new Date(timestamp);
-        } else {
-            this.timestamp = null;
-        }
     }
 }

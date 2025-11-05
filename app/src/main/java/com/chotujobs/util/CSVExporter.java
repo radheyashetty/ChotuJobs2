@@ -29,31 +29,34 @@ public class CSVExporter {
         StringBuilder csv = new StringBuilder();
         csv.append("Job ID,Title,Category,Start Date,Location,Winner,Winner Contact,Winner Bid Amount,Labourer\n");
 
-        // Job details
-        csv.append(job.getJobId()).append(",");
-        csv.append(job.getTitle()).append(",");
-        csv.append(job.getCategory()).append(",");
-        csv.append(job.getStartDate()).append(",");
-        csv.append(job.getLocation()).append(",");
+        // Job details - escape commas in fields
+        csv.append(escapeCSV(job.getJobId())).append(",");
+        csv.append(escapeCSV(job.getTitle())).append(",");
+        csv.append(escapeCSV(job.getCategory())).append(",");
+        csv.append(escapeCSV(job.getStartDate())).append(",");
+        csv.append(escapeCSV(job.getLocation())).append(",");
 
         // Winner details
-        User winner = userMap.get(winningBid.getBidderId());
+        String bidderId = winningBid != null ? winningBid.getBidderId() : null;
+        User winner = (bidderId != null && userMap != null) ? userMap.get(bidderId) : null;
         if (winner != null) {
-            csv.append(winner.getName()).append(",");
-            if (winner.getEmail() != null) {
-                csv.append(winner.getEmail()).append(",");
+            csv.append(escapeCSV(winner.getName())).append(",");
+            if (winner.getEmail() != null && !winner.getEmail().isEmpty()) {
+                csv.append(escapeCSV(winner.getEmail())).append(",");
+            } else if (winner.getPhone() != null && !winner.getPhone().isEmpty()) {
+                csv.append(escapeCSV(winner.getPhone())).append(",");
             } else {
-                csv.append(winner.getPhone()).append(",");
+                csv.append("N/A,");
             }
         } else {
             csv.append("N/A,N/A,");
         }
-        csv.append(winningBid.getBidAmount()).append(",");
+        csv.append(winningBid != null ? winningBid.getBidAmount() : 0).append(",");
 
-        if (winningBid.getLabourerIdIfAgent() != null) {
+        if (winningBid != null && winningBid.getLabourerIdIfAgent() != null && userMap != null) {
             User labourer = userMap.get(winningBid.getLabourerIdIfAgent());
-            if (labourer != null) {
-                csv.append(labourer.getName());
+            if (labourer != null && labourer.getName() != null) {
+                csv.append(escapeCSV(labourer.getName()));
             }
         }
         csv.append("\n\n");
@@ -61,19 +64,21 @@ public class CSVExporter {
         // All bids
         csv.append("All Bids\n");
         csv.append("Bidder,Bid Amount,Labourer\n");
-        if (allBids != null) {
+        if (allBids != null && userMap != null) {
             for (Bid bid : allBids) {
-                User bidder = userMap.get(bid.getBidderId());
-                if (bidder != null) {
-                    csv.append(bidder.getName()).append(",");
+                if (bid == null) continue;
+                String bidBidderId = bid.getBidderId();
+                User bidder = (bidBidderId != null) ? userMap.get(bidBidderId) : null;
+                if (bidder != null && bidder.getName() != null) {
+                    csv.append(escapeCSV(bidder.getName())).append(",");
                 } else {
                     csv.append("N/A,");
                 }
                 csv.append(bid.getBidAmount()).append(",");
                 if (bid.getLabourerIdIfAgent() != null) {
                     User labourer = userMap.get(bid.getLabourerIdIfAgent());
-                    if (labourer != null) {
-                        csv.append(labourer.getName());
+                    if (labourer != null && labourer.getName() != null) {
+                        csv.append(escapeCSV(labourer.getName()));
                     }
                 }
                 csv.append("\n");
@@ -88,8 +93,16 @@ public class CSVExporter {
     }
 
     public static void saveToFile(Context context, String filename, String content) {
+        if (context == null || filename == null || content == null) {
+            return;
+        }
         try {
-            File file = new File(context.getExternalFilesDir(null), filename);
+            File dir = context.getExternalFilesDir(null);
+            if (dir == null) {
+                Toast.makeText(context, "Error: Cannot access external storage", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            File file = new File(dir, filename);
             FileOutputStream fos = new FileOutputStream(file);
             fos.write(content.getBytes());
             fos.close();
@@ -97,5 +110,16 @@ public class CSVExporter {
         } catch (IOException e) {
             Toast.makeText(context, "Error saving CSV: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
+    }
+    
+    private static String escapeCSV(String value) {
+        if (value == null) {
+            return "";
+        }
+        // Escape quotes and wrap in quotes if contains comma, quote, or newline
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
 }

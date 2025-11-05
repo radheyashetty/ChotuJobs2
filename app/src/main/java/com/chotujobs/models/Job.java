@@ -1,6 +1,7 @@
 package com.chotujobs.models;
 
-import com.google.firebase.firestore.ServerTimestamp;
+import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.Exclude;
 import java.util.Date;
 
 public class Job {
@@ -12,11 +13,11 @@ public class Job {
     private String location; // Changed from GeoPoint to String
     private String imageUrl; // nullable - local path
     private String status; // "active" or "closed"
-    @ServerTimestamp
-    private Date timestamp;
+    private Long timestamp; // stored as milliseconds since epoch
     private String requirements;
     private int bidLimit;
 
+    // Required public no-arg constructor
     public Job() {}
 
     public String getJobId() {
@@ -83,20 +84,23 @@ public class Job {
         this.status = status;
     }
 
-    public Date getTimestamp() {
+    public Long getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    // Main setter for Firestore
+    public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
     }
 
-    public void setTimestamp(Long timestamp) {
-        if (timestamp != null) {
-            this.timestamp = new Date(timestamp);
-        } else {
-            this.timestamp = null;
-        }
+    // Safe optional method if Firestore document uses Timestamp type
+    public void setTimestampFromFirestore(Timestamp timestamp) {
+        this.timestamp = (timestamp != null) ? timestamp.toDate().getTime() : null;
+    }
+
+    @Exclude
+    public Date getTimestampAsDate() {
+        return (timestamp != null) ? new Date(timestamp) : null;
     }
 
     public String getRequirements() {

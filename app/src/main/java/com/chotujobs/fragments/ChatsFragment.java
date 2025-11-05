@@ -79,31 +79,85 @@ public class ChatsFragment extends Fragment {
                     if (!isAdded() || binding == null) return;
                     binding.swipeRefreshLayout.setRefreshing(false);
                     if (e != null) {
+                        android.util.Log.e("ChatsFragment", "Error listening for chats", e);
+                        if (getContext() != null) {
+                            Toast.makeText(getContext(), "Error loading chats: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                        return;
+                    }
+
+                    if (snapshots == null) {
                         return;
                     }
 
                     List<String> userIds = new ArrayList<>();
                     for (DocumentChange dc : snapshots.getDocumentChanges()) {
-                        if (dc.getType() == DocumentChange.Type.ADDED) {
-                            Chat chat = dc.getDocument().toObject(Chat.class);
-                            chat.setChatId(dc.getDocument().getId());
-                            chatList.add(chat);
-                            for(String userId : chat.getUserIds()){
-                                if(!userId.equals(currentUserId)){
-                                    userIds.add(userId);
+                        Chat chat = dc.getDocument().toObject(Chat.class);
+                        if (chat == null || chat.getUserIds() == null) {
+                            continue;
+                        }
+                        
+                        String docId = dc.getDocument().getId();
+                        chat.setChatId(docId);
+                        
+                        switch (dc.getType()) {
+                            case ADDED:
+                                // Check for duplicates
+                                boolean exists = false;
+                                for (Chat c : chatList) {
+                                    if (docId.equals(c.getChatId())) {
+                                        exists = true;
+                                        break;
+                                    }
                                 }
-                            }
+                                if (!exists) {
+                                    chatList.add(chat);
+                                    for(String userId : chat.getUserIds()){
+                                        if(!userId.equals(currentUserId)){
+                                            userIds.add(userId);
+                                        }
+                                    }
+                                }
+                                break;
+                            case MODIFIED:
+                                // Update existing chat
+                                for (int i = 0; i < chatList.size(); i++) {
+                                    if (docId.equals(chatList.get(i).getChatId())) {
+                                        chatList.set(i, chat);
+                                        for(String userId : chat.getUserIds()){
+                                            if(!userId.equals(currentUserId)){
+                                                userIds.add(userId);
+                                            }
+                                        }
+                                        break;
+                                    }
+                                }
+                                break;
+                            case REMOVED:
+                                // Remove chat
+                                for (int i = 0; i < chatList.size(); i++) {
+                                    if (docId.equals(chatList.get(i).getChatId())) {
+                                        chatList.remove(i);
+                                        break;
+                                    }
+                                }
+                                break;
                         }
                     }
 
+                    // Load user details for all chats
                     if(!userIds.isEmpty()){
                         firestoreService.getUsersByIds(userIds, users -> {
                             if (!isAdded()) return;
                             for (User user : users) {
-                                userMap.put(user.getUserId(), user);
+                                if (user != null && user.getUserId() != null) {
+                                    userMap.put(user.getUserId(), user);
+                                }
                             }
                             adapter.notifyDataSetChanged();
                         });
+                    } else {
+                        adapter.notifyDataSetChanged();
                     }
                 });
     }

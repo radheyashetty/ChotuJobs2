@@ -7,6 +7,8 @@ import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.ListAdapter; // Add this line
+import androidx.recyclerview.widget.DiffUtil;
 
 import com.bumptech.glide.Glide;
 import com.chotujobs.databinding.ItemContractorJobBinding;
@@ -30,14 +32,23 @@ public class ContractorJobAdapter extends ListAdapter<Job, ContractorJobAdapter.
     private static final DiffUtil.ItemCallback<Job> DIFF_CALLBACK = new DiffUtil.ItemCallback<Job>() {
         @Override
         public boolean areItemsTheSame(@NonNull Job oldItem, @NonNull Job newItem) {
-            return oldItem.getJobId().equals(newItem.getJobId());
+            return safeEquals(oldItem.getJobId(), newItem.getJobId());
         }
 
         @Override
         public boolean areContentsTheSame(@NonNull Job oldItem, @NonNull Job newItem) {
-            return oldItem.equals(newItem);
+            return safeEquals(oldItem.getTitle(), newItem.getTitle())
+                    && safeEquals(oldItem.getCategory(), newItem.getCategory())
+                    && safeEquals(oldItem.getStatus(), newItem.getStatus())
+                    && safeEquals(oldItem.getStartDate(), newItem.getStartDate())
+                    && safeEquals(oldItem.getLocation(), newItem.getLocation())
+                    && safeEquals(oldItem.getImageUrl(), newItem.getImageUrl());
         }
     };
+
+    private static boolean safeEquals(Object a, Object b) {
+        return a == b || (a != null && a.equals(b));
+    }
 
     @NonNull
     @Override
@@ -68,11 +79,14 @@ public class ContractorJobAdapter extends ListAdapter<Job, ContractorJobAdapter.
         }
 
         public void bind(Job job) {
-            binding.titleTextView.setText(job.getTitle());
-            binding.categoryTextView.setText(job.getCategory());
-            binding.statusTextView.setText("Status: " + job.getStatus().toUpperCase());
-            binding.dateTextView.setText("Start: " + job.getStartDate());
-            binding.locationTextView.setText("Location: " + job.getLocation());
+            if (job == null) return;
+            
+            binding.titleTextView.setText(job.getTitle() != null ? job.getTitle() : "");
+            binding.categoryTextView.setText(job.getCategory() != null ? job.getCategory() : "");
+            String status = job.getStatus() != null ? job.getStatus().toUpperCase() : "UNKNOWN";
+            binding.statusTextView.setText("Status: " + status);
+            binding.dateTextView.setText("Start: " + (job.getStartDate() != null ? job.getStartDate() : ""));
+            binding.locationTextView.setText("Location: " + (job.getLocation() != null ? job.getLocation() : ""));
 
             if (job.getImageUrl() != null && !job.getImageUrl().isEmpty()) {
                 binding.imageView.setVisibility(View.VISIBLE);

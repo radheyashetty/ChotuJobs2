@@ -1,16 +1,18 @@
 package com.chotujobs.models;
 
+import com.google.firebase.firestore.ServerTimestamp;
+import java.util.Date;
 import java.util.List;
 
 public class Chat {
     private String chatId;
     private List<String> userIds;
     private String lastMessage;
-    private long lastMessageTimestamp;
+    private @ServerTimestamp Date lastMessageTimestamp;
 
     public Chat() {}
 
-    public Chat(String chatId, List<String> userIds, String lastMessage, long lastMessageTimestamp) {
+    public Chat(String chatId, List<String> userIds, String lastMessage, Date lastMessageTimestamp) {
         this.chatId = chatId;
         this.userIds = userIds;
         this.lastMessage = lastMessage;
@@ -41,11 +43,11 @@ public class Chat {
         this.lastMessage = lastMessage;
     }
 
-    public long getLastMessageTimestamp() {
+    public Date getLastMessageTimestamp() {
         return lastMessageTimestamp;
     }
 
-    public void setLastMessageTimestamp(long lastMessageTimestamp) {
+    public void setLastMessageTimestamp(Date lastMessageTimestamp) {
         this.lastMessageTimestamp = lastMessageTimestamp;
     }
 }

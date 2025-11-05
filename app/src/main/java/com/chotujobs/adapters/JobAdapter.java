@@ -21,20 +21,34 @@ public class JobAdapter extends ListAdapter<Job, JobAdapter.JobViewHolder> {
     public JobAdapter(String userRole, OnJobClickListener listener) {
         super(DIFF_CALLBACK);
         this.listener = listener;
-        this.userRole = userRole;
+        this.userRole = userRole != null ? userRole : "";
+    }
+
+    public void setUserRole(String userRole) {
+        this.userRole = userRole != null ? userRole : "";
     }
 
     private static final DiffUtil.ItemCallback<Job> DIFF_CALLBACK = new DiffUtil.ItemCallback<Job>() {
         @Override
         public boolean areItemsTheSame(@NonNull Job oldItem, @NonNull Job newItem) {
-            return oldItem.getJobId().equals(newItem.getJobId());
+            return safeEquals(oldItem.getJobId(), newItem.getJobId());
         }
 
         @Override
         public boolean areContentsTheSame(@NonNull Job oldItem, @NonNull Job newItem) {
-            return oldItem.equals(newItem);
+            return safeEquals(oldItem.getTitle(), newItem.getTitle())
+                    && safeEquals(oldItem.getCategory(), newItem.getCategory())
+                    && safeEquals(oldItem.getStartDate(), newItem.getStartDate())
+                    && safeEquals(oldItem.getLocation(), newItem.getLocation())
+                    && safeEquals(oldItem.getImageUrl(), newItem.getImageUrl())
+                    && safeEquals(oldItem.getStatus(), newItem.getStatus())
+                    && oldItem.getBidLimit() == newItem.getBidLimit();
         }
     };
+
+    private static boolean safeEquals(Object a, Object b) {
+        return a == b || (a != null && a.equals(b));
+    }
 
     @NonNull
     @Override
@@ -78,10 +92,12 @@ public class JobAdapter extends ListAdapter<Job, JobAdapter.JobViewHolder> {
         }
 
         public void bind(Job job) {
-            binding.titleTextView.setText(job.getTitle());
-            binding.categoryTextView.setText(job.getCategory());
-            binding.dateTextView.setText("Start: " + job.getStartDate());
-            binding.locationTextView.setText("Location: " + job.getLocation());
+            if (job == null) return;
+            
+            binding.titleTextView.setText(job.getTitle() != null ? job.getTitle() : "");
+            binding.categoryTextView.setText(job.getCategory() != null ? job.getCategory() : "");
+            binding.dateTextView.setText("Start: " + (job.getStartDate() != null ? job.getStartDate() : ""));
+            binding.locationTextView.setText("Location: " + (job.getLocation() != null ? job.getLocation() : ""));
 
             if (job.getRequirements() != null && !job.getRequirements().isEmpty()) {
                 binding.requirementsTextView.setText("Requirements: " + job.getRequirements());
@@ -97,7 +113,16 @@ public class JobAdapter extends ListAdapter<Job, JobAdapter.JobViewHolder> {
                 binding.bidLimitTextView.setVisibility(android.view.View.GONE);
             }
 
-            if ("labourer".equals(userRole) || "agent".equals(userRole)) {
+            // Show buttons for labour/labourer and agent users, hide for contractors
+            boolean shouldShowButtons = false;
+            if (userRole != null && !userRole.isEmpty()) {
+                String roleLower = userRole.toLowerCase();
+                shouldShowButtons = "labour".equals(roleLower) || 
+                                  "labourer".equals(roleLower) || 
+                                  "agent".equals(roleLower);
+            }
+            
+            if (shouldShowButtons) {
                 binding.applyButton.setVisibility(android.view.View.VISIBLE);
                 binding.messageButton.setVisibility(android.view.View.VISIBLE);
             } else {

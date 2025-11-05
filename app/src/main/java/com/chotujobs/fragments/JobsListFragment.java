@@ -52,7 +52,27 @@ public class JobsListFragment extends Fragment implements JobAdapter.OnJobClickL
 
         firestoreService = FirestoreService.getInstance();
         SharedPreferences prefs = requireContext().getSharedPreferences("chotujobs_prefs", 0);
-        currentUserId = prefs.getString("user_id", "");
+        String authUserId = firestoreService.getCurrentUserId();
+        currentUserId = authUserId != null ? authUserId : prefs.getString("user_id", "");
+
+        // If userRole is not set from arguments, try to get it from SharedPreferences or Firestore
+        if (userRole == null || userRole.isEmpty()) {
+            userRole = prefs.getString("user_role", "");
+            if (userRole == null || userRole.isEmpty()) {
+                // Fetch from Firestore as fallback
+                if (currentUserId != null && !currentUserId.isEmpty()) {
+                    firestoreService.getUserProfile(currentUserId, user -> {
+                        if (user != null && user.getRole() != null) {
+                            userRole = user.getRole();
+                            if (adapter != null) {
+                                adapter.setUserRole(userRole);
+                                adapter.notifyDataSetChanged();
+                            }
+                        }
+                    });
+                }
+            }
+        }
 
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 

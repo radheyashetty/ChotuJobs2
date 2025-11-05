@@ -1,5 +1,6 @@
 package com.chotujobs.fragments;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -8,6 +9,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -26,6 +29,7 @@ public class ProfileFragment extends Fragment {
     private FragmentProfileBinding binding;
     private FirebaseAuth auth;
     private SharedPreferences prefs;
+    private ActivityResultLauncher<Intent> editProfileLauncher;
 
     @Nullable
     @Override
@@ -35,11 +39,21 @@ public class ProfileFragment extends Fragment {
         auth = FirebaseAuth.getInstance();
         prefs = requireContext().getSharedPreferences("chotujobs_prefs", 0);
 
+        // Register for activity result
+        editProfileLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        // Profile was updated, reload it
+                        loadUserProfile();
+                    }
+                });
+
         loadUserProfile();
 
         binding.btnEditProfile.setOnClickListener(v -> {
             Intent intent = new Intent(getContext(), EditProfileActivity.class);
-            startActivity(intent);
+            editProfileLauncher.launch(intent);
         });
 
         binding.btnLogout.setOnClickListener(v -> handleLogout());
@@ -56,32 +70,80 @@ public class ProfileFragment extends Fragment {
     private void loadUserProfile() {
         FirebaseUser currentUser = auth.getCurrentUser();
         if (currentUser == null) {
+            if (isAdded() && binding != null) {
+                binding.userNameTextView.setText("Not logged in");
+            }
             return;
         }
         String userId = currentUser.getUid();
         FirestoreService.getInstance().getUserProfile(userId, user -> {
-            if (isAdded() && binding != null && user != null) {
-                if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isEmpty()) {
-                    Glide.with(this).load(user.getProfileImageUrl()).into(binding.profileImageView);
-                } else {
-                    Glide.with(this).load(com.chotujobs.R.drawable.ic_launcher_background).into(binding.profileImageView);
-                }
-                binding.userNameTextView.setText(user.getName());
-                binding.userRoleTextView.setText("Role: " + user.getRole());
-                if (user.getEmail() != null) {
-                    binding.userContactTextView.setText(user.getEmail());
-                } else {
-                    binding.userContactTextView.setText(user.getPhone());
-                }
-                binding.userAddressTextView.setText("Address: " + (user.getAddress() != null ? user.getAddress() : "Not set"));
-                if (user.getSkills() != null && !user.getSkills().isEmpty()) {
-                    binding.userSkillsTextView.setText("Skills: " + String.join(", ", user.getSkills()));
-                } else {
-                    binding.userSkillsTextView.setText("Skills: Not set");
-                }
-                binding.userExperienceTextView.setText("Experience: " + user.getYearsOfExperience() + " years");
-
+            if (!isAdded() || binding == null) {
+                return;
             }
+            
+            if (user == null) {
+                binding.userNameTextView.setText("Failed to load profile");
+                return;
+            }
+            
+            // Load profile image
+            if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isEmpty()) {
+                Glide.with(requireContext())
+                        .load(user.getProfileImageUrl())
+                        .placeholder(android.R.drawable.ic_menu_gallery)
+                        .error(android.R.drawable.ic_menu_gallery)
+                        .circleCrop()
+                        .into(binding.profileImageView);
+            } else {
+                // Set default placeholder if no image
+                binding.profileImageView.setImageResource(android.R.drawable.ic_menu_gallery);
+            }
+            
+            // Display name
+            String userName = user.getName();
+            if (userName != null && !userName.trim().isEmpty()) {
+                binding.userNameTextView.setText(userName);
+            } else {
+                binding.userNameTextView.setText("Name not set");
+            }
+            
+            // Display role
+            String role = user.getRole();
+            if (role != null && !role.trim().isEmpty()) {
+                String capitalizedRole = role.length() > 1 
+                    ? role.substring(0, 1).toUpperCase() + role.substring(1)
+                    : role.toUpperCase();
+                binding.userRoleTextView.setText("Role: " + capitalizedRole);
+            } else {
+                binding.userRoleTextView.setText("Role: Unknown");
+            }
+            
+            // Display contact (email or phone)
+            if (user.getEmail() != null && !user.getEmail().trim().isEmpty()) {
+                binding.userContactTextView.setText(user.getEmail());
+            } else if (user.getPhone() != null && !user.getPhone().trim().isEmpty()) {
+                binding.userContactTextView.setText(user.getPhone());
+            } else {
+                binding.userContactTextView.setText("Contact: Not set");
+            }
+            
+            // Display address
+            String address = user.getAddress();
+            if (address != null && !address.trim().isEmpty()) {
+                binding.userAddressTextView.setText("Address: " + address);
+            } else {
+                binding.userAddressTextView.setText("Address: Not set");
+            }
+            
+            // Display skills
+            if (user.getSkills() != null && !user.getSkills().isEmpty()) {
+                binding.userSkillsTextView.setText("Skills: " + String.join(", ", user.getSkills()));
+            } else {
+                binding.userSkillsTextView.setText("Skills: Not set");
+            }
+            
+            // Display experience
+            binding.userExperienceTextView.setText("Experience: " + user.getYearsOfExperience() + " years");
         });
     }
 

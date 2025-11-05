@@ -112,6 +112,12 @@ public class FirestoreService {
             return;
         }
 
+        // Firestore whereIn has a limit of 10 items, so we need to batch if more
+        if (userIds.size() > 10) {
+            Log.w(TAG, "getUsersByIds: More than 10 userIds, fetching first 10 only");
+            userIds = userIds.subList(0, 10);
+        }
+
         db.collection(COLLECTION_USERS).whereIn(com.google.firebase.firestore.FieldPath.documentId(), userIds).get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<User> users = new ArrayList<>();
@@ -120,6 +126,8 @@ public class FirestoreService {
                         if (user != null) {
                             user.setUserId(document.getId());
                             users.add(user);
+                        } else {
+                            Log.w(TAG, "Skipping null user document: " + document.getId());
                         }
                     }
                     listener.onComplete(users);
@@ -131,9 +139,27 @@ public class FirestoreService {
     }
 
     public void updateUserProfile(String userId, Map<String, Object> updates, OnCompleteListener<Boolean> listener) {
+        if (userId == null || userId.isEmpty()) {
+            Log.e(TAG, "Cannot update user profile: userId is null or empty");
+            listener.onComplete(false);
+            return;
+        }
+        if (updates == null || updates.isEmpty()) {
+            Log.w(TAG, "No updates to apply for user: " + userId);
+            listener.onComplete(true);
+            return;
+        }
+        
+        Log.d(TAG, "Updating user profile: " + userId + " with fields: " + updates.keySet());
         db.collection(COLLECTION_USERS).document(userId).update(updates)
-                .addOnSuccessListener(aVoid -> listener.onComplete(true))
-                .addOnFailureListener(e -> listener.onComplete(false));
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "User profile updated successfully: " + userId);
+                    listener.onComplete(true);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error updating user profile: " + userId, e);
+                    listener.onComplete(false);
+                });
     }
 
     public void getAllUsers(OnCompleteListener<List<User>> listener) {
@@ -159,7 +185,8 @@ public class FirestoreService {
 
     public void createJob(Job job, OnCompleteListener<String> listener) {
         job.setStatus("active");
-        job.setTimestamp(null); // Firestore will set this with @ServerTimestamp
+        // Persist as milliseconds since epoch to match existing data
+        job.setTimestamp(System.currentTimeMillis());
         db.collection(COLLECTION_JOBS).add(job)
                 .addOnSuccessListener(documentReference -> {
                     Log.d(TAG, "Job created successfully: " + documentReference.getId());
@@ -180,8 +207,12 @@ public class FirestoreService {
                     List<Job> jobs = new ArrayList<>();
                     for (var document : queryDocumentSnapshots.getDocuments()) {
                         Job job = document.toObject(Job.class);
-                        job.setJobId(document.getId());
-                        jobs.add(job);
+                        if (job != null) {
+                            job.setJobId(document.getId());
+                            jobs.add(job);
+                        } else {
+                            Log.w(TAG, "Skipping null job document: " + document.getId());
+                        }
                     }
                     listener.onComplete(jobs);
                 })
@@ -200,8 +231,12 @@ public class FirestoreService {
                     List<Job> jobs = new ArrayList<>();
                     for (var document : queryDocumentSnapshots.getDocuments()) {
                         Job job = document.toObject(Job.class);
-                        job.setJobId(document.getId());
-                        jobs.add(job);
+                        if (job != null) {
+                            job.setJobId(document.getId());
+                            jobs.add(job);
+                        } else {
+                            Log.w(TAG, "Skipping null job document: " + document.getId());
+                        }
                     }
                     listener.onComplete(jobs);
                 })
@@ -251,21 +286,110 @@ public class FirestoreService {
     // ========== BID METHODS ==========
 
     public void createBid(Bid bid, OnCompleteListener<String> listener) {
+        if (bid == null || bid.getJobId() == null || bid.getJobId().isEmpty() 
+                || bid.getBidderId() == null || bid.getBidderId().isEmpty()) {
+            Log.e(TAG, "Cannot create bid: bid is invalid or missing required fields");
+            listener.onComplete(null);
+            return;
+        }
+        
+        // Validate bid amount
+        if (bid.getBidAmount() <= 0) {
+            Log.e(TAG, "Cannot create bid: bid amount must be greater than zero");
+            listener.onComplete(null);
+            return;
+        }
+        
+        // Verify bidderId matches authenticated user
+        String currentUserId = getCurrentUserId();
+        if (currentUserId == null || !currentUserId.equals(bid.getBidderId())) {
+            Log.e(TAG, "Cannot create bid: bidderId (" + bid.getBidderId() + ") doesn't match authenticated user (" + currentUserId + ")");
+            listener.onComplete(null);
+            return;
+        }
+        
         bid.setStatus("pending");
-        bid.setTimestamp(null);
-        db.collection(COLLECTION_JOBS).document(bid.getJobId())
-                .collection(SUBCOLLECTION_BIDS).add(bid)
-                .addOnSuccessListener(documentReference -> {
-                    Log.d(TAG, "Bid created successfully: " + documentReference.getId());
-                    listener.onComplete(documentReference.getId());
+        // Don't set timestamp - let @ServerTimestamp handle it automatically
+        // bid.setTimestamp(null) would interfere with @ServerTimestamp annotation
+        
+        // First verify the job exists and is active before creating bid
+        db.collection(COLLECTION_JOBS).document(bid.getJobId()).get()
+                .addOnSuccessListener(jobSnapshot -> {
+                    if (!jobSnapshot.exists()) {
+                        Log.e(TAG, "Cannot create bid: job does not exist - " + bid.getJobId());
+                        listener.onComplete(null);
+                        return;
+                    }
+                    
+                    String jobStatus = jobSnapshot.getString("status");
+                    if (!"active".equals(jobStatus)) {
+                        Log.e(TAG, "Cannot create bid: job is not active. Current status: " + jobStatus);
+                        listener.onComplete(null);
+                        return;
+                    }
+                    
+                    // Job exists and is active, proceed with bid creation
+                    // Verify user role before creating bid
+                    db.collection(COLLECTION_USERS).document(bid.getBidderId()).get()
+                            .addOnSuccessListener(userSnapshot -> {
+                                if (!userSnapshot.exists()) {
+                                    Log.e(TAG, "Cannot create bid: user document does not exist");
+                                    listener.onComplete(null);
+                                    return;
+                                }
+                                
+                                String userRole = userSnapshot.getString("role");
+                                Log.d(TAG, "User role: " + userRole + ", bidderId: " + bid.getBidderId());
+                                
+                                if (userRole == null || (!userRole.equals("labour") && !userRole.equals("agent"))) {
+                                    Log.e(TAG, "Cannot create bid: user role is '" + userRole + "' but must be 'labour' or 'agent'");
+                                    listener.onComplete(null);
+                                    return;
+                                }
+                                
+                                // All checks passed, create the bid
+                                db.collection(COLLECTION_JOBS).document(bid.getJobId())
+                                        .collection(SUBCOLLECTION_BIDS).add(bid)
+                                        .addOnSuccessListener(documentReference -> {
+                                            Log.d(TAG, "Bid created successfully: " + documentReference.getId());
+                                            listener.onComplete(documentReference.getId());
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            Log.e(TAG, "Error creating bid in Firestore", e);
+                                            if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException) {
+                                                com.google.firebase.firestore.FirebaseFirestoreException firestoreException = 
+                                                    (com.google.firebase.firestore.FirebaseFirestoreException) e;
+                                                Log.e(TAG, "Error code: " + firestoreException.getCode() + ", Message: " + firestoreException.getMessage());
+                                                
+                                                if (firestoreException.getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                                                    Log.e(TAG, "Permission denied. Possible causes:");
+                                                    Log.e(TAG, "  - User role is not 'labour' or 'agent' (current: " + userRole + ")");
+                                                    Log.e(TAG, "  - bidderId doesn't match auth.uid");
+                                                    Log.e(TAG, "  - Job status is not 'active'");
+                                                    Log.e(TAG, "  - User document doesn't exist");
+                                                }
+                                            }
+                                            listener.onComplete(null);
+                                        });
+                            })
+                            .addOnFailureListener(e -> {
+                                Log.e(TAG, "Error checking user document", e);
+                                listener.onComplete(null);
+                            });
                 })
                 .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error creating bid", e);
+                    Log.e(TAG, "Error checking job existence", e);
                     listener.onComplete(null);
                 });
     }
 
     public void getBidsByJob(String jobId, OnCompleteListener<List<Bid>> listener) {
+        if (jobId == null || jobId.isEmpty()) {
+            Log.e(TAG, "Cannot get bids: jobId is null or empty");
+            listener.onComplete(new ArrayList<>());
+            return;
+        }
+        
         db.collection(COLLECTION_JOBS).document(jobId)
                 .collection(SUBCOLLECTION_BIDS)
                 .orderBy("timestamp", Query.Direction.DESCENDING)
@@ -274,9 +398,13 @@ public class FirestoreService {
                     List<Bid> bids = new ArrayList<>();
                     for (var document : queryDocumentSnapshots.getDocuments()) {
                         Bid bid = document.toObject(Bid.class);
-                        bid.setBidId(document.getId());
-                        bid.setJobId(jobId);
-                        bids.add(bid);
+                        if (bid != null) {
+                            bid.setBidId(document.getId());
+                            bid.setJobId(jobId);
+                            bids.add(bid);
+                        } else {
+                            Log.w(TAG, "Skipping null bid document: " + document.getId());
+                        }
                     }
                     listener.onComplete(bids);
                 })
@@ -303,6 +431,13 @@ public class FirestoreService {
     // ========== CHAT METHODS ==========
 
     public void createChat(String userId1, String userId2, OnCompleteListener<String> listener) {
+        if (userId1 == null || userId1.isEmpty() || userId2 == null || userId2.isEmpty()) {
+            Log.e(TAG, "Cannot create chat: userIds are null or empty");
+            listener.onComplete(null);
+            return;
+        }
+        
+        // Ensure consistent chatId by sorting user IDs
         String chatId = (userId1.compareTo(userId2) > 0) ? userId1 + userId2 : userId2 + userId1;
         DocumentReference chatRef = db.collection(COLLECTION_CHATS).document(chatId);
 
@@ -311,15 +446,36 @@ public class FirestoreService {
                 Map<String, Object> chatData = new HashMap<>();
                 chatData.put("userIds", Arrays.asList(userId1, userId2));
                 chatRef.set(chatData)
-                        .addOnSuccessListener(aVoid -> listener.onComplete(chatId))
-                        .addOnFailureListener(e -> listener.onComplete(null));
+                        .addOnSuccessListener(aVoid -> {
+                            Log.d(TAG, "Chat created successfully: " + chatId);
+                            listener.onComplete(chatId);
+                        })
+                        .addOnFailureListener(e -> {
+                            Log.e(TAG, "Error creating chat", e);
+                            listener.onComplete(null);
+                        });
             } else {
+                Log.d(TAG, "Chat already exists: " + chatId);
                 listener.onComplete(chatId);
             }
-        }).addOnFailureListener(e -> listener.onComplete(null));
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Error checking chat existence", e);
+            listener.onComplete(null);
+        });
     }
 
     public void sendMessage(String chatId, Message message, OnCompleteListener<Boolean> listener) {
+        if (chatId == null || chatId.isEmpty()) {
+            Log.e(TAG, "Cannot send message: chatId is null or empty");
+            listener.onComplete(false);
+            return;
+        }
+        if (message == null || message.getMessage() == null || message.getSenderId() == null) {
+            Log.e(TAG, "Cannot send message: message is invalid");
+            listener.onComplete(false);
+            return;
+        }
+
         WriteBatch batch = db.batch();
 
         DocumentReference messageRef = db.collection(COLLECTION_CHATS).document(chatId)
@@ -333,8 +489,14 @@ public class FirestoreService {
         batch.update(chatRef, chatUpdates);
 
         batch.commit()
-                .addOnSuccessListener(aVoid -> listener.onComplete(true))
-                .addOnFailureListener(e -> listener.onComplete(false));
+                .addOnSuccessListener(aVoid -> {
+                    Log.d(TAG, "Message sent successfully to chat: " + chatId);
+                    listener.onComplete(true);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Error sending message", e);
+                    listener.onComplete(false);
+                });
     }
 
     public Query getMessages(String chatId) {

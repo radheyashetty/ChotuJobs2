@@ -33,6 +33,7 @@ public class CreateJobActivity extends AppCompatActivity {
     private Uri selectedImageUri = null;
     private Calendar calendar;
     private ActivityResultLauncher<Intent> imagePickerLauncher;
+    private boolean isContractorUser = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +42,9 @@ public class CreateJobActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         firestoreService = FirestoreService.getInstance();
-        contractorId = getSharedPreferences("chotujobs_prefs", 0).getString("user_id", "");
+        // Prefer authenticated userId; fall back to stored preference
+        String authUserId = firestoreService.getCurrentUserId();
+        contractorId = authUserId != null ? authUserId : getSharedPreferences("chotujobs_prefs", 0).getString("user_id", "");
         calendar = Calendar.getInstance();
 
         imagePickerLauncher = registerForActivityResult(
@@ -53,6 +56,20 @@ public class CreateJobActivity extends AppCompatActivity {
                         binding.imageView.setVisibility(View.VISIBLE);
                     }
                 });
+
+        // Resolve role to ensure only contractors can post. Disable save until resolved.
+        binding.saveButton.setEnabled(false);
+        if (contractorId != null && !contractorId.isEmpty()) {
+            firestoreService.getUserProfile(contractorId, user -> {
+                isContractorUser = (user != null && "contractor".equals(user.getRole()));
+                binding.saveButton.setEnabled(isContractorUser);
+                if (!isContractorUser) {
+                    Toast.makeText(this, "Only contractor accounts can create jobs", Toast.LENGTH_LONG).show();
+                }
+            });
+        } else {
+            Toast.makeText(this, "Please log in again before creating a job", Toast.LENGTH_LONG).show();
+        }
 
         setupCategorySpinner();
         setupDatePicker();
@@ -105,6 +122,14 @@ public class CreateJobActivity extends AppCompatActivity {
     }
 
     private void saveJob() {
+        if (contractorId == null || contractorId.isEmpty()) {
+            Toast.makeText(this, "Please log in again before creating a job", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!isContractorUser) {
+            Toast.makeText(this, "Only contractor accounts can create jobs", Toast.LENGTH_SHORT).show();
+            return;
+        }
         String title = binding.titleEditText.getText().toString().trim();
         String category = binding.categorySpinner.getSelectedItem().toString();
         String startDate = binding.startDateEditText.getText().toString().trim();

@@ -113,7 +113,9 @@ public class JobDetailsDialogFragment extends DialogFragment {
 
         List<String> userIds = new ArrayList<>();
         for (Bid bid : allBids) {
-            userIds.add(bid.getBidderId());
+            if (bid != null && bid.getBidderId() != null && !bid.getBidderId().isEmpty()) {
+                userIds.add(bid.getBidderId());
+            }
         }
 
         firestoreService.getUsersByIds(userIds, users -> {
