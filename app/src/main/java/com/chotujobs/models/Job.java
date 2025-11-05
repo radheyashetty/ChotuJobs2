@@ -1,5 +1,6 @@
 package com.chotujobs.models;
 
+import com.google.firebase.firestore.Exclude;
 import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;
 
@@ -12,8 +13,7 @@ public class Job {
     private String location; // Changed from GeoPoint to String
     private String imageUrl; // nullable - local path
     private String status; // "active" or "closed"
-    @ServerTimestamp
-    private Date timestamp;
+    private Long timestamp;
     private String requirements;
     private int bidLimit;
 
@@ -83,12 +83,21 @@ public class Job {
         this.status = status;
     }
 
-    public Date getTimestamp() {
+    @ServerTimestamp
+    public Long getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    @Exclude
+    public Date getTimestampAsDate() {
+        if (timestamp == null) {
+            return null;
+        }
+        return new Date(timestamp);
     }
 
     public String getRequirements() {

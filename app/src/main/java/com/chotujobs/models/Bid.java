@@ -3,6 +3,7 @@ package com.chotujobs.models;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.google.firebase.firestore.Exclude;
 import com.google.firebase.firestore.ServerTimestamp;
 import java.util.Date;
 
@@ -13,7 +14,7 @@ public class Bid implements Parcelable {
     private double bidAmount;
     private String labourerIdIfAgent; // nullable - only set if bidder is an agent
     private String status; // "pending", "accepted", "rejected"
-    private @ServerTimestamp Date timestamp;
+    private Long timestamp;
 
     public Bid() {}
 
@@ -24,8 +25,11 @@ public class Bid implements Parcelable {
         bidAmount = in.readDouble();
         labourerIdIfAgent = in.readString();
         status = in.readString();
-        long tmpTimestamp = in.readLong();
-        timestamp = tmpTimestamp == -1 ? null : new Date(tmpTimestamp);
+        if (in.readByte() == 0) {
+            timestamp = null;
+        } else {
+            timestamp = in.readLong();
+        }
     }
 
     @Override
@@ -36,7 +40,12 @@ public class Bid implements Parcelable {
         dest.writeDouble(bidAmount);
         dest.writeString(labourerIdIfAgent);
         dest.writeString(status);
-        dest.writeLong(timestamp != null ? timestamp.getTime() : -1);
+        if (timestamp == null) {
+            dest.writeByte((byte) 0);
+        } else {
+            dest.writeByte((byte) 1);
+            dest.writeLong(timestamp);
+        }
     }
 
     @Override
@@ -104,11 +113,20 @@ public class Bid implements Parcelable {
         this.status = status;
     }
 
-    public Date getTimestamp() {
+    @ServerTimestamp
+    public Long getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    @Exclude
+    public Date getTimestampAsDate() {
+        if (timestamp == null) {
+            return null;
+        }
+        return new Date(timestamp);
     }
 }
