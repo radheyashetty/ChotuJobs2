@@ -1,37 +1,40 @@
 package com.chotujobs.adapters;
 
-import android.content.Context;
-import android.content.Intent;
-import android.widget.Toast;
-
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.bumptech.glide.Glide;
-import com.chotujobs.ChatActivity;
 import com.chotujobs.databinding.ItemJobBinding;
 import com.chotujobs.models.Job;
-import com.chotujobs.services.FirestoreService;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 
-import java.util.List;
+public class JobAdapter extends ListAdapter<Job, JobAdapter.JobViewHolder> {
 
-public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
-
-    private List<Job> jobList;
     private OnJobClickListener listener;
     private String userRole;
 
     public interface OnJobClickListener {
         void onJobClick(Job job);
+        void onMessageClick(Job job);
     }
 
-    public JobAdapter(List<Job> jobList, String userRole, OnJobClickListener listener) {
-        this.jobList = jobList;
+    public JobAdapter(String userRole, OnJobClickListener listener) {
+        super(DIFF_CALLBACK);
         this.listener = listener;
         this.userRole = userRole;
     }
+
+    private static final DiffUtil.ItemCallback<Job> DIFF_CALLBACK = new DiffUtil.ItemCallback<Job>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull Job oldItem, @NonNull Job newItem) {
+            return oldItem.getJobId().equals(newItem.getJobId());
+        }
+
+        @Override
+        public boolean areContentsTheSame(@NonNull Job oldItem, @NonNull Job newItem) {
+            return oldItem.equals(newItem);
+        }
+    };
 
     @NonNull
     @Override
@@ -42,13 +45,8 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
 
     @Override
     public void onBindViewHolder(@NonNull JobViewHolder holder, int position) {
-        Job job = jobList.get(position);
+        Job job = getItem(position);
         holder.bind(job);
-    }
-
-    @Override
-    public int getItemCount() {
-        return jobList.size();
     }
 
     class JobViewHolder extends RecyclerView.ViewHolder {
@@ -57,41 +55,24 @@ public class JobAdapter extends RecyclerView.Adapter<JobAdapter.JobViewHolder> {
         public JobViewHolder(ItemJobBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
-            Context context = itemView.getContext();
 
             itemView.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION && listener != null) {
-                    listener.onJobClick(jobList.get(position));
+                    listener.onJobClick(getItem(position));
                 }
             });
             binding.applyButton.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (position != RecyclerView.NO_POSITION && listener != null) {
-                    listener.onJobClick(jobList.get(position));
+                    listener.onJobClick(getItem(position));
                 }
             });
 
             binding.messageButton.setOnClickListener(v -> {
                 int position = getAdapterPosition();
-                if (position != RecyclerView.NO_POSITION) {
-                    FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
-                    if (currentUser == null) {
-                        Toast.makeText(context, "You must be logged in to send a message.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    Job job = jobList.get(position);
-                    String currentUserId = currentUser.getUid();
-                    FirestoreService.getInstance().createChat(currentUserId, job.getContractorId(), chatId -> {
-                        if (chatId != null) {
-                            Intent intent = new Intent(context, ChatActivity.class);
-                            intent.putExtra("chatId", chatId);
-                            intent.putExtra("receiverId", job.getContractorId());
-                            context.startActivity(intent);
-                        } else {
-                            Toast.makeText(context, "Failed to create or open chat.", Toast.LENGTH_SHORT).show();
-                        }
-                    });
+                if (position != RecyclerView.NO_POSITION && listener != null) {
+                    listener.onMessageClick(getItem(position));
                 }
             });
         }

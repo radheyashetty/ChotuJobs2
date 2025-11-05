@@ -1,7 +1,6 @@
 package com.chotujobs.services;
 
 import android.util.Log;
-
 import com.chotujobs.models.Bid;
 import com.chotujobs.models.Chat;
 import com.chotujobs.models.Job;
@@ -14,7 +13,6 @@ import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.WriteBatch;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -132,18 +130,8 @@ public class FirestoreService {
                 });
     }
 
-    public void updateUserProfile(String userId, User user, OnCompleteListener<Boolean> listener) {
-        DocumentReference userRef = db.collection(COLLECTION_USERS).document(userId);
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("name", user.getName());
-        updates.put("skills", user.getSkills());
-        updates.put("address", user.getAddress());
-        updates.put("yearsOfExperience", user.getYearsOfExperience());
-        if (user.getProfileImageUrl() != null) {
-            updates.put("profileImageUrl", user.getProfileImageUrl());
-        }
-
-        userRef.update(updates)
+    public void updateUserProfile(String userId, Map<String, Object> updates, OnCompleteListener<Boolean> listener) {
+        db.collection(COLLECTION_USERS).document(userId).update(updates)
                 .addOnSuccessListener(aVoid -> listener.onComplete(true))
                 .addOnFailureListener(e -> listener.onComplete(false));
     }

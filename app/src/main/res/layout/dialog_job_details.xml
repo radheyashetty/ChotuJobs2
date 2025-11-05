@@ -35,10 +35,9 @@
         android:layout_gravity="center"
         android:visibility="gone"/>
 
-    <ListView
-        android:id="@+id/bidsListView"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/bidsRecyclerView"
         android:layout_width="match_parent"
         android:layout_height="300dp" />
 
 </LinearLayout>
-

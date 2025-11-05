@@ -1,5 +1,6 @@
 package com.chotujobs.fragments;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -12,15 +13,13 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.chotujobs.ChatActivity;
 import com.chotujobs.adapters.JobAdapter;
 import com.chotujobs.databinding.FragmentJobsListBinding;
 import com.chotujobs.models.Job;
 import com.chotujobs.services.FirestoreService;
 
-import java.util.ArrayList;
-import java.util.List;
-
-public class JobsListFragment extends Fragment {
+public class JobsListFragment extends Fragment implements JobAdapter.OnJobClickListener {
 
     private static final String ARG_USER_ROLE = "user_role";
 
@@ -28,7 +27,6 @@ public class JobsListFragment extends Fragment {
     private JobAdapter adapter;
     private FirestoreService firestoreService;
     private String currentUserId;
-    private List<Job> jobList;
     private String userRole;
 
     public static JobsListFragment newInstance(String userRole) {
@@ -58,8 +56,7 @@ public class JobsListFragment extends Fragment {
 
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        jobList = new ArrayList<>();
-        adapter = new JobAdapter(jobList, userRole, this::showBidDialog);
+        adapter = new JobAdapter(userRole, this);
         binding.recyclerView.setAdapter(adapter);
 
         loadJobs();
@@ -76,9 +73,7 @@ public class JobsListFragment extends Fragment {
             if (isAdded() && binding != null) {
                 binding.swipeRefreshLayout.setRefreshing(false);
                 if (jobs != null && !jobs.isEmpty()) {
-                    jobList.clear();
-                    jobList.addAll(jobs);
-                    adapter.notifyDataSetChanged();
+                    adapter.submitList(jobs);
                 } else {
                     if (getContext() != null) {
                         Toast.makeText(getContext(), "No active jobs available", Toast.LENGTH_SHORT).show();
@@ -88,7 +83,8 @@ public class JobsListFragment extends Fragment {
         });
     }
 
-    private void showBidDialog(Job job) {
+    @Override
+    public void onJobClick(Job job) {
         BidDialogFragment dialog = BidDialogFragment.newInstance(job.getJobId(), currentUserId, userRole);
         dialog.setBidListener(() -> {
             if (isAdded()) {
@@ -99,6 +95,22 @@ public class JobsListFragment extends Fragment {
             }
         });
         dialog.show(getParentFragmentManager(), "bid_dialog");
+    }
+
+    @Override
+    public void onMessageClick(Job job) {
+        firestoreService.createChat(currentUserId, job.getContractorId(), chatId -> {
+            if (isAdded() && getContext() != null) {
+                if (chatId != null) {
+                    Intent intent = new Intent(getContext(), ChatActivity.class);
+                    intent.putExtra("chatId", chatId);
+                    intent.putExtra("receiverId", job.getContractorId());
+                    startActivity(intent);
+                } else {
+                    Toast.makeText(getContext(), "Failed to create or open chat.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 
     @Override

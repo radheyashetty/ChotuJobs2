@@ -8,22 +8,17 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
-
 import com.chotujobs.CreateJobActivity;
 import com.chotujobs.adapters.ContractorJobAdapter;
 import com.chotujobs.databinding.FragmentContractorBinding;
 import com.chotujobs.models.Job;
 import com.chotujobs.services.FirestoreService;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class ContractorFragment extends Fragment {
 
@@ -31,7 +26,6 @@ public class ContractorFragment extends Fragment {
     private ContractorJobAdapter adapter;
     private FirestoreService firestoreService;
     private String currentUserId;
-    private List<Job> jobList;
     private ActivityResultLauncher<Intent> createJobLauncher;
 
     @Nullable
@@ -45,8 +39,7 @@ public class ContractorFragment extends Fragment {
 
         binding.recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
 
-        jobList = new ArrayList<>();
-        adapter = new ContractorJobAdapter(jobList, this::showJobDetails);
+        adapter = new ContractorJobAdapter(this::showJobDetails);
         binding.recyclerView.setAdapter(adapter);
 
         createJobLauncher = registerForActivityResult(
@@ -75,9 +68,7 @@ public class ContractorFragment extends Fragment {
             if (isAdded() && binding != null) {
                 binding.swipeRefreshLayout.setRefreshing(false);
                 if (jobs != null) {
-                    jobList.clear();
-                    jobList.addAll(jobs);
-                    adapter.notifyDataSetChanged();
+                    adapter.submitList(jobs);
                 } else {
                     if (getContext() != null) {
                         Toast.makeText(getContext(), "Error loading jobs", Toast.LENGTH_SHORT).show();

@@ -1,22 +1,18 @@
 package com.chotujobs.adapters;
 
-import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
-import com.chotujobs.databinding.ItemBidBinding;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
+import androidx.recyclerview.widget.RecyclerView;
+import com.chotujobs.databinding.ItemBidNewBinding;
 import com.chotujobs.models.Bid;
 import com.chotujobs.models.User;
-
-import java.util.List;
 import java.util.Map;
 
-public class BidAdapter extends ArrayAdapter<Bid> {
+public class BidAdapter extends ListAdapter<Bid, BidAdapter.BidViewHolder> {
 
     private Map<String, User> userMap;
     private OnBidActionClickListener listener;
@@ -26,26 +22,60 @@ public class BidAdapter extends ArrayAdapter<Bid> {
         void onRejectBidClick(Bid bid);
     }
 
-    public BidAdapter(@NonNull Context context, List<Bid> bids, Map<String, User> userMap, OnBidActionClickListener listener) {
-        super(context, 0, bids);
+    public BidAdapter(Map<String, User> userMap, OnBidActionClickListener listener) {
+        super(DIFF_CALLBACK);
         this.userMap = userMap;
         this.listener = listener;
     }
 
-    @NonNull
-    @Override
-    public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
-        ItemBidBinding binding;
-        if (convertView == null) {
-            binding = ItemBidBinding.inflate(LayoutInflater.from(getContext()), parent, false);
-            convertView = binding.getRoot();
-            convertView.setTag(binding);
-        } else {
-            binding = (ItemBidBinding) convertView.getTag();
+    private static final DiffUtil.ItemCallback<Bid> DIFF_CALLBACK = new DiffUtil.ItemCallback<Bid>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull Bid oldItem, @NonNull Bid newItem) {
+            return oldItem.getBidId().equals(newItem.getBidId());
         }
 
+        @Override
+        public boolean areContentsTheSame(@NonNull Bid oldItem, @NonNull Bid newItem) {
+            return oldItem.equals(newItem);
+        }
+    };
+
+    @NonNull
+    @Override
+    public BidViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        ItemBidNewBinding binding = ItemBidNewBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
+        return new BidViewHolder(binding);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull BidViewHolder holder, int position) {
         Bid bid = getItem(position);
-        if (bid != null) {
+        holder.bind(bid);
+    }
+
+    class BidViewHolder extends RecyclerView.ViewHolder {
+        private ItemBidNewBinding binding;
+
+        public BidViewHolder(ItemBidNewBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
+
+            binding.acceptBidButton.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION && listener != null) {
+                    listener.onAcceptBidClick(getItem(position));
+                }
+            });
+
+            binding.rejectBidButton.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION && listener != null) {
+                    listener.onRejectBidClick(getItem(position));
+                }
+            });
+        }
+
+        public void bind(Bid bid) {
             User bidder = userMap.get(bid.getBidderId());
             if (bidder != null) {
                 String bidderName = bidder.getName();
@@ -59,33 +89,11 @@ public class BidAdapter extends ArrayAdapter<Bid> {
             }
 
             binding.bidAmountTextView.setText("Bid: ₹" + bid.getBidAmount());
-
             binding.bidStatusTextView.setText("Status: " + bid.getStatus());
 
-            if ("accepted".equals(bid.getStatus())) {
-                binding.acceptBidButton.setVisibility(View.GONE);
-                binding.rejectBidButton.setVisibility(View.GONE);
-            } else if ("rejected".equals(bid.getStatus())) {
-                binding.acceptBidButton.setVisibility(View.GONE);
-                binding.rejectBidButton.setVisibility(View.GONE);
-            } else {
-                binding.acceptBidButton.setVisibility(View.VISIBLE);
-                binding.rejectBidButton.setVisibility(View.VISIBLE);
-            }
-
-            binding.acceptBidButton.setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onAcceptBidClick(bid);
-                }
-            });
-
-            binding.rejectBidButton.setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onRejectBidClick(bid);
-                }
-            });
+            boolean isPending = "pending".equals(bid.getStatus());
+            binding.acceptBidButton.setVisibility(isPending ? View.VISIBLE : View.GONE);
+            binding.rejectBidButton.setVisibility(isPending ? View.VISIBLE : View.GONE);
         }
-
-        return convertView;
     }
 }

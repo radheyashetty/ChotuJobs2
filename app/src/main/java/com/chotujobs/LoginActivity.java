@@ -6,17 +6,14 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
-
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.chotujobs.databinding.ActivityLoginBinding;
 import com.chotujobs.models.User;
 import com.chotujobs.services.FirestoreService;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
-import com.google.firebase.auth.FirebaseAuthUserCollisionException;
-
 import java.util.concurrent.TimeUnit;
 
 public class LoginActivity extends AppCompatActivity {
@@ -27,8 +24,14 @@ public class LoginActivity extends AppCompatActivity {
     private SharedPreferences prefs;
     private ActivityLoginBinding binding;
     private String verificationId;
-    private boolean isEmailLogin = true;
-    private boolean isWaitingForOtp = false;
+
+    private enum UiState {
+        INITIAL,
+        EMAIL_LOGIN,
+        PHONE_LOGIN,
+        OTP_VERIFICATION,
+        ROLE_SELECTION
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,58 +50,79 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         initializeViews();
+        updateUi(UiState.INITIAL);
     }
 
     private void initializeViews() {
-        binding.btnEmailLogin.setOnClickListener(v -> showEmailFields());
-        binding.btnPhoneLogin.setOnClickListener(v -> showPhoneFields());
+        binding.btnEmailLogin.setOnClickListener(v -> updateUi(UiState.EMAIL_LOGIN));
+        binding.btnPhoneLogin.setOnClickListener(v -> updateUi(UiState.PHONE_LOGIN));
         binding.btnAction.setOnClickListener(v -> handleAction());
-        binding.btnCancel.setOnClickListener(v -> resetToInitialState());
-    }
-    
-    private void resetToInitialState(){
-        isEmailLogin = true;
-        binding.emailFields.setVisibility(View.GONE);
-        binding.phoneFields.setVisibility(View.GONE);
-        binding.otpInputLayout.setVisibility(View.GONE);
-        binding.phoneNumberInputLayout.setVisibility(View.VISIBLE);
-        binding.btnAction.setVisibility(View.GONE);
-        binding.btnCancel.setVisibility(View.GONE);
-        binding.btnEmailLogin.setVisibility(View.VISIBLE);
-        binding.btnPhoneLogin.setVisibility(View.VISIBLE);
+        binding.btnCancel.setOnClickListener(v -> updateUi(UiState.INITIAL));
     }
 
-    private void showEmailFields() {
-        isEmailLogin = true;
-        binding.emailFields.setVisibility(View.VISIBLE);
-        binding.phoneFields.setVisibility(View.GONE);
-        binding.btnAction.setVisibility(View.VISIBLE);
-        binding.btnCancel.setVisibility(View.VISIBLE);
-        binding.btnAction.setText("Login / Sign Up");
-        binding.btnEmailLogin.setVisibility(View.GONE);
-        binding.btnPhoneLogin.setVisibility(View.GONE);
-    }
-
-    private void showPhoneFields() {
-        isEmailLogin = false;
-        binding.emailFields.setVisibility(View.GONE);
-        binding.phoneFields.setVisibility(View.VISIBLE);
-        binding.btnAction.setVisibility(View.VISIBLE);
-        binding.btnCancel.setVisibility(View.VISIBLE);
-        binding.btnAction.setText("Send OTP");
-        binding.btnEmailLogin.setVisibility(View.GONE);
-        binding.btnPhoneLogin.setVisibility(View.GONE);
+    private void updateUi(UiState state) {
+        binding.progressBar.setVisibility(View.GONE);
+        binding.btnAction.setEnabled(true);
+        switch (state) {
+            case INITIAL:
+                binding.viewFlipper.setDisplayedChild(0);
+                binding.btnAction.setVisibility(View.GONE);
+                binding.btnCancel.setVisibility(View.GONE);
+                break;
+            case EMAIL_LOGIN:
+                binding.viewFlipper.setDisplayedChild(1);
+                binding.btnAction.setText("Login / Sign Up");
+                binding.btnAction.setVisibility(View.VISIBLE);
+                binding.btnCancel.setVisibility(View.VISIBLE);
+                break;
+            case PHONE_LOGIN:
+                binding.viewFlipper.setDisplayedChild(2);
+                binding.otpInputLayout.setVisibility(View.GONE);
+                binding.phoneNumberInputLayout.setVisibility(View.VISIBLE);
+                binding.btnAction.setText("Send OTP");
+                binding.btnAction.setVisibility(View.VISIBLE);
+                binding.btnCancel.setVisibility(View.VISIBLE);
+                break;
+            case OTP_VERIFICATION:
+                binding.phoneNumberInputLayout.setVisibility(View.GONE);
+                binding.otpInputLayout.setVisibility(View.VISIBLE);
+                binding.btnAction.setText("Verify OTP");
+                break;
+            case ROLE_SELECTION:
+                binding.viewFlipper.setVisibility(View.GONE);
+                binding.roleSpinner.setVisibility(View.VISIBLE);
+                binding.btnAction.setText("Create Account");
+                break;
+        }
     }
 
     private void handleAction() {
-        if (isEmailLogin) {
-            handleEmailLogin();
-        } else {
-            if (isWaitingForOtp) {
-                verifyOtp();
-            } else {
+        UiState currentState = getCurrentUiState();
+        switch (currentState) {
+            case EMAIL_LOGIN:
+                handleEmailLogin();
+                break;
+            case PHONE_LOGIN:
                 sendOtp();
-            }
+                break;
+            case OTP_VERIFICATION:
+                verifyOtp();
+                break;
+        }
+    }
+
+    private UiState getCurrentUiState() {
+        switch (binding.viewFlipper.getDisplayedChild()) {
+            case 1:
+                return UiState.EMAIL_LOGIN;
+            case 2:
+                if (binding.otpInputLayout.getVisibility() == View.VISIBLE) {
+                    return UiState.OTP_VERIFICATION;
+                } else {
+                    return UiState.PHONE_LOGIN;
+                }
+            default:
+                return UiState.INITIAL;
         }
     }
 
@@ -111,6 +135,7 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
+        binding.progressBar.setVisibility(View.VISIBLE);
         binding.btnAction.setEnabled(false);
 
         auth.signInWithEmailAndPassword(email, password)
@@ -120,9 +145,10 @@ public class LoginActivity extends AppCompatActivity {
                         String uid = auth.getCurrentUser().getUid();
                         fetchUserProfileAndNavigate(uid);
                     } else {
+                        binding.progressBar.setVisibility(View.GONE);
+                        binding.btnAction.setEnabled(true);
                         if (task.getException() instanceof FirebaseAuthUserCollisionException) {
                             Toast.makeText(this, "Email already in use.", Toast.LENGTH_SHORT).show();
-                             binding.btnAction.setEnabled(true);
                         } else {
                             Log.w(TAG, "Login failed, attempting to create user", task.getException());
                             promptForRole(email, password);
@@ -138,6 +164,7 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
+        binding.progressBar.setVisibility(View.VISIBLE);
         binding.btnAction.setEnabled(false);
 
         PhoneAuthProvider.getInstance().verifyPhoneNumber(
@@ -155,17 +182,13 @@ public class LoginActivity extends AppCompatActivity {
                     public void onVerificationFailed(com.google.firebase.FirebaseException e) {
                         Log.w(TAG, "onVerificationFailed", e);
                         Toast.makeText(LoginActivity.this, "Verification failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                        binding.btnAction.setEnabled(true);
+                        updateUi(UiState.PHONE_LOGIN);
                     }
 
                     @Override
                     public void onCodeSent(String verificationId, PhoneAuthProvider.ForceResendingToken token) {
                         LoginActivity.this.verificationId = verificationId;
-                        isWaitingForOtp = true;
-                        binding.phoneNumberInputLayout.setVisibility(View.GONE);
-                        binding.otpInputLayout.setVisibility(View.VISIBLE);
-                        binding.btnAction.setText("Verify OTP");
-                        binding.btnAction.setEnabled(true);
+                        updateUi(UiState.OTP_VERIFICATION);
                     }
                 });
     }
@@ -182,6 +205,8 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void signInWithPhoneAuthCredential(PhoneAuthCredential credential) {
+        binding.progressBar.setVisibility(View.VISIBLE);
+        binding.btnAction.setEnabled(false);
         auth.signInWithCredential(credential)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
@@ -190,8 +215,8 @@ public class LoginActivity extends AppCompatActivity {
                         fetchUserProfileAndNavigate(uid);
                     } else {
                         Log.w(TAG, "Login failed", task.getException());
-                        isWaitingForOtp = false;
                         Toast.makeText(this, "Authentication failed.", Toast.LENGTH_SHORT).show();
+                        updateUi(UiState.PHONE_LOGIN);
                     }
                 });
     }
@@ -211,14 +236,12 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void promptForRole(String email, String password) {
-        binding.emailFields.setVisibility(View.GONE);
-        binding.phoneFields.setVisibility(View.GONE);
-        binding.roleSpinner.setVisibility(View.VISIBLE);
-        binding.btnAction.setText("Create Account");
-        binding.btnAction.setEnabled(true);
+        updateUi(UiState.ROLE_SELECTION);
         binding.btnAction.setOnClickListener(v -> {
             String role = binding.roleSpinner.getSelectedItem().toString().toLowerCase();
-            if (isEmailLogin) {
+            binding.progressBar.setVisibility(View.VISIBLE);
+            binding.btnAction.setEnabled(false);
+            if (getCurrentUiState() == UiState.EMAIL_LOGIN) {
                 auth.createUserWithEmailAndPassword(email, password)
                         .addOnCompleteListener(this, task -> {
                             if (task.isSuccessful()) {
@@ -227,6 +250,7 @@ public class LoginActivity extends AppCompatActivity {
                                 createUserProfile(user, newUid, role);
                             } else {
                                 Toast.makeText(this, "Authentication failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                                updateUi(UiState.EMAIL_LOGIN);
                             }
                         });
             } else {
@@ -237,8 +261,10 @@ public class LoginActivity extends AppCompatActivity {
         });
     }
     
-    private void createUserProfile(User user, String uid, String role){
+    private void createUserProfile(User user, String uid, String role) {
         firestoreService.createUserProfile(user, uid, success -> {
+            binding.progressBar.setVisibility(View.GONE);
+            binding.btnAction.setEnabled(true);
             if (success) {
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putString("user_role", role);

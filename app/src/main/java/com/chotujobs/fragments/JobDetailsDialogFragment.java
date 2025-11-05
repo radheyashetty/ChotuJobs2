@@ -3,14 +3,12 @@ package com.chotujobs.fragments;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
-
+import androidx.recyclerview.widget.LinearLayoutManager;
 import com.chotujobs.adapters.BidAdapter;
 import com.chotujobs.databinding.DialogJobDetailsBinding;
 import com.chotujobs.models.Bid;
@@ -18,7 +16,6 @@ import com.chotujobs.models.Job;
 import com.chotujobs.models.User;
 import com.chotujobs.services.FirestoreService;
 import com.chotujobs.util.CSVExporter;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -133,11 +130,12 @@ public class JobDetailsDialogFragment extends DialogFragment {
         if (!isAdded()) return;
         binding.progressBar.setVisibility(View.GONE);
         if (allBids == null || allBids.isEmpty()) {
-            binding.bidsListView.setAdapter(null);
+            binding.bidsRecyclerView.setAdapter(null);
             return;
         }
 
-        BidAdapter adapter = new BidAdapter(requireContext(), allBids, userMap, new BidAdapter.OnBidActionClickListener() {
+        binding.bidsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        BidAdapter adapter = new BidAdapter(userMap, new BidAdapter.OnBidActionClickListener() {
             @Override
             public void onAcceptBidClick(Bid bid) {
                 showBidderDetailsDialog(bid);
@@ -148,7 +146,8 @@ public class JobDetailsDialogFragment extends DialogFragment {
                 showConfirmRejectDialog(bid);
             }
         });
-        binding.bidsListView.setAdapter(adapter);
+        binding.bidsRecyclerView.setAdapter(adapter);
+        adapter.submitList(allBids);
     }
 
     private void showBidderDetailsDialog(Bid bid) {

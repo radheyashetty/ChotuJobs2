@@ -5,12 +5,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.widget.Toast;
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.bumptech.glide.Glide;
 import com.chotujobs.databinding.ActivityEditProfileBinding;
 import com.chotujobs.models.User;
@@ -18,9 +15,10 @@ import com.chotujobs.services.FirestoreService;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class EditProfileActivity extends AppCompatActivity {
 
@@ -95,11 +93,13 @@ public class EditProfileActivity extends AppCompatActivity {
             return;
         }
 
-        List<String> skills = Arrays.asList(skillsStr.split("\\s*,\\s*"));
-        int experience = 0;
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("name", name);
+        updates.put("skills", Arrays.asList(skillsStr.split("\\s*,\\s*")));
+        updates.put("address", address);
         if (!experienceStr.isEmpty()) {
             try {
-                experience = Integer.parseInt(experienceStr);
+                updates.put("yearsOfExperience", Integer.parseInt(experienceStr));
             } catch (NumberFormatException e) {
                 Toast.makeText(this, "Invalid number for years of experience", Toast.LENGTH_SHORT).show();
                 return;
@@ -107,28 +107,19 @@ public class EditProfileActivity extends AppCompatActivity {
         }
 
         if (selectedImageUri != null) {
-            int finalExperience = experience;
             uploadImage(selectedImageUri, imageUrl -> {
-                User user = new User();
-                user.setName(name);
-                user.setSkills(skills);
-                user.setAddress(address);
-                user.setYearsOfExperience(finalExperience);
-                user.setProfileImageUrl(imageUrl);
-                updateUser(user);
+                if (imageUrl != null) {
+                    updates.put("profileImageUrl", imageUrl);
+                }
+                updateUser(updates);
             });
         } else {
-            User user = new User();
-            user.setName(name);
-            user.setSkills(skills);
-            user.setAddress(address);
-            user.setYearsOfExperience(experience);
-            updateUser(user);
+            updateUser(updates);
         }
     }
 
-    private void updateUser(User user) {
-        firestoreService.updateUserProfile(userId, user, success -> {
+    private void updateUser(Map<String, Object> updates) {
+        firestoreService.updateUserProfile(userId, updates, success -> {
             if (success) {
                 Toast.makeText(this, "Profile updated successfully", Toast.LENGTH_SHORT).show();
                 finish();
