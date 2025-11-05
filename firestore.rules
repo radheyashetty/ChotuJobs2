@@ -48,7 +48,9 @@ service cloud.firestore {
       // Labourer or agent can create a bid while job is active
       allow create: if isSignedIn()
         && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && userDoc().data.role in ['labour','agent']
+        && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'labour' ||
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'labourer' ||
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'agent')
         && request.resource.data.bidderId == request.auth.uid
         && exists(/databases/$(database)/documents/jobs/$(jobId))
         && get(/databases/$(database)/documents/jobs/$(jobId)).data.status == 'active'

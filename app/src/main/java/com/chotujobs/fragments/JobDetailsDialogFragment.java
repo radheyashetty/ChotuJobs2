@@ -3,6 +3,7 @@ package com.chotujobs.fragments;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -186,7 +187,7 @@ public class JobDetailsDialogFragment extends DialogFragment {
         if (!isAdded()) return;
         new AlertDialog.Builder(requireContext())
                 .setTitle("Confirm Winner")
-                .setMessage("Mark this bid as winner? This will close the job.")
+                .setMessage("Mark this bid as winner? This will close the job and notify the labourer.")
                 .setPositiveButton("Yes", (dialog, which) -> {
                     firestoreService.updateBidStatus(jobId, bid.getBidId(), "accepted", success -> {
                         if (!isAdded()) return;
@@ -196,7 +197,21 @@ public class JobDetailsDialogFragment extends DialogFragment {
                                 if (updateSuccess) {
                                     CSVExporter.exportJobToCSV(currentJob, bid, allBids, userMap, getContext());
                                     
-                                    Toast.makeText(getContext(), "Winner selected! CSV saved.", Toast.LENGTH_SHORT).show();
+                                    // Notify the labourer that their bid was accepted
+                                    String contractorId = currentJob != null ? currentJob.getContractorId() : null;
+                                    String jobTitle = currentJob != null ? currentJob.getTitle() : null;
+                                    if (contractorId != null && !contractorId.isEmpty()) {
+                                        firestoreService.notifyBidAccepted(contractorId, bid, jobTitle, notified -> {
+                                            if (!isAdded()) return;
+                                            if (notified) {
+                                                Log.d("JobDetailsDialog", "Labourer notified successfully");
+                                            } else {
+                                                Log.w("JobDetailsDialog", "Failed to notify labourer, but bid was accepted");
+                                            }
+                                        });
+                                    }
+                                    
+                                    Toast.makeText(getContext(), "Winner selected! Labourer notified. CSV saved.", Toast.LENGTH_SHORT).show();
                                     
                                     if (jobClosedListener != null) {
                                         jobClosedListener.run();

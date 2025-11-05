@@ -162,25 +162,6 @@ public class FirestoreService {
                 });
     }
 
-    public void getAllUsers(OnCompleteListener<List<User>> listener) {
-        db.collection(COLLECTION_USERS).get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<User> users = new ArrayList<>();
-                    for (var document : queryDocumentSnapshots.getDocuments()) {
-                        User user = document.toObject(User.class);
-                        if (user != null) {
-                            user.setUserId(document.getId());
-                            users.add(user);
-                        }
-                    }
-                    listener.onComplete(users);
-                })
-                .addOnFailureListener(e -> {
-                    Log.e(TAG, "Error getting all users", e);
-                    listener.onComplete(new ArrayList<>());
-                });
-    }
-
     // ========== JOB METHODS ==========
 
     public void createJob(Job job, OnCompleteListener<String> listener) {
@@ -339,13 +320,21 @@ public class FirestoreService {
                                 }
                                 
                                 String userRole = userSnapshot.getString("role");
-                                Log.d(TAG, "User role: " + userRole + ", bidderId: " + bid.getBidderId());
+                                Log.d(TAG, "User role from Firestore: " + userRole + ", bidderId: " + bid.getBidderId());
                                 
-                                if (userRole == null || (!userRole.equals("labour") && !userRole.equals("agent"))) {
+                                // Normalize role to handle variations (labour, labourer, etc.)
+                                String normalizedRole = (userRole != null) ? userRole.toLowerCase().trim() : "";
+                                boolean isValidRole = "labour".equals(normalizedRole) || 
+                                                     "labourer".equals(normalizedRole) || 
+                                                     "agent".equals(normalizedRole);
+                                
+                                if (!isValidRole) {
                                     Log.e(TAG, "Cannot create bid: user role is '" + userRole + "' but must be 'labour' or 'agent'");
                                     listener.onComplete(null);
                                     return;
                                 }
+                                
+                                Log.d(TAG, "Role validation passed: " + normalizedRole);
                                 
                                 // All checks passed, create the bid
                                 db.collection(COLLECTION_JOBS).document(bid.getJobId())
@@ -445,10 +434,16 @@ public class FirestoreService {
             if (!documentSnapshot.exists()) {
                 Map<String, Object> chatData = new HashMap<>();
                 chatData.put("userIds", Arrays.asList(userId1, userId2));
+                chatData.put("lastMessage", "");
+                chatData.put("lastMessageTimestamp", FieldValue.serverTimestamp());
                 chatRef.set(chatData)
                         .addOnSuccessListener(aVoid -> {
                             Log.d(TAG, "Chat created successfully: " + chatId);
-                            listener.onComplete(chatId);
+                            // Wait a moment for Firestore to commit the chat document
+                            // This ensures the security rules can read it before we send a message
+                            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                                listener.onComplete(chatId);
+                            }, 300);
                         })
                         .addOnFailureListener(e -> {
                             Log.e(TAG, "Error creating chat", e);
@@ -495,6 +490,17 @@ public class FirestoreService {
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Error sending message", e);
+                    if (e instanceof com.google.firebase.firestore.FirebaseFirestoreException) {
+                        com.google.firebase.firestore.FirebaseFirestoreException firestoreException = 
+                            (com.google.firebase.firestore.FirebaseFirestoreException) e;
+                        Log.e(TAG, "Error code: " + firestoreException.getCode() + ", Message: " + firestoreException.getMessage());
+                        if (firestoreException.getCode() == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                            Log.e(TAG, "Permission denied. Possible causes:");
+                            Log.e(TAG, "  - User not in chat userIds array");
+                            Log.e(TAG, "  - senderId (" + message.getSenderId() + ") doesn't match auth.uid (" + getCurrentUserId() + ")");
+                            Log.e(TAG, "  - Chat document might not exist yet");
+                        }
+                    }
                     listener.onComplete(false);
                 });
     }
@@ -509,6 +515,65 @@ public class FirestoreService {
         return db.collection(COLLECTION_CHATS)
                 .whereArrayContains("userIds", userId)
                 .orderBy("lastMessageTimestamp", Query.Direction.DESCENDING);
+    }
+
+    /**
+     * Notifies the labourer that their bid has been accepted
+     * @param contractorId The ID of the contractor who accepted the bid
+     * @param bid The accepted bid
+     * @param jobTitle The title of the job
+     * @param listener Callback to indicate success/failure
+     */
+    public void notifyBidAccepted(String contractorId, Bid bid, String jobTitle, OnCompleteListener<Boolean> listener) {
+        if (contractorId == null || contractorId.isEmpty() || bid == null) {
+            Log.e(TAG, "Cannot notify bid acceptance: invalid parameters");
+            listener.onComplete(false);
+            return;
+        }
+
+        // Determine the correct labourer ID: if agent bid, use labourerIdIfAgent, otherwise use bidderId
+        String labourerId = (bid.getLabourerIdIfAgent() != null && !bid.getLabourerIdIfAgent().isEmpty())
+                ? bid.getLabourerIdIfAgent()
+                : bid.getBidderId();
+
+        if (labourerId == null || labourerId.isEmpty()) {
+            Log.e(TAG, "Cannot notify bid acceptance: labourer ID is null or empty");
+            listener.onComplete(false);
+            return;
+        }
+
+        // Verify contractorId matches authenticated user
+        String currentUserId = getCurrentUserId();
+        if (currentUserId == null || !currentUserId.equals(contractorId)) {
+            Log.e(TAG, "Cannot notify bid acceptance: contractorId (" + contractorId + ") doesn't match authenticated user (" + currentUserId + ")");
+            listener.onComplete(false);
+            return;
+        }
+
+        // Create or get existing chat between contractor and labourer
+        createChat(contractorId, labourerId, chatId -> {
+            if (chatId == null || chatId.isEmpty()) {
+                Log.e(TAG, "Failed to create/get chat for bid acceptance notification");
+                listener.onComplete(false);
+                return;
+            }
+
+            // Create notification message
+            String messageText = String.format("Congratulations! Your bid of ₹%.2f for the job \"%s\" has been accepted!", 
+                    bid.getBidAmount(), jobTitle != null ? jobTitle : "the job");
+            
+            Message notificationMessage = new Message(contractorId, labourerId, messageText);
+
+            // Send the message (chat is already committed from createChat)
+            sendMessage(chatId, notificationMessage, success -> {
+                if (success) {
+                    Log.d(TAG, "Bid acceptance notification sent successfully to labourer: " + labourerId);
+                } else {
+                    Log.e(TAG, "Failed to send bid acceptance notification message");
+                }
+                listener.onComplete(success);
+            });
+        });
     }
 
     // ========== CALLBACK INTERFACE ==========

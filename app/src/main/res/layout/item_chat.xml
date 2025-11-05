@@ -4,14 +4,17 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:padding="16dp"
-    android:gravity="center_vertical">
+    android:gravity="center_vertical"
+    android:background="?android:attr/selectableItemBackground">
 
     <ImageView
         android:id="@+id/profileImageView"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
         android:layout_marginEnd="16dp"
-        android:src="@drawable/ic_launcher_background" />
+        android:scaleType="centerCrop"
+        android:src="@android:drawable/ic_menu_gallery"
+        android:contentDescription="Profile image" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -22,15 +25,18 @@
         <TextView
             android:id="@+id/userNameTextView"
             android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/design_default_color_on_surface" />
 
-    <TextView
-        android:id="@+id/lastMessageTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="14sp" />
+        <TextView
+            android:id="@+id/lastMessageTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:textColor="@color/design_default_color_on_surface_variant"
+            android:layout_marginTop="4dp" />
 
-</LinearLayout>
+    </LinearLayout>
 </LinearLayout>

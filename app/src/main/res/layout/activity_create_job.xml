@@ -101,7 +101,8 @@
             android:layout_height="wrap_content"
             android:text="Add Image"
             android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="16dp"
+            style="@style/Widget.Material3.Button.OutlinedButton" />
 
         <ImageView
             android:id="@+id/imageView"
@@ -124,7 +125,9 @@
             android:layout_height="wrap_content"
             android:text="Create Job"
             android:textStyle="bold"
-            android:padding="16dp" />
+            android:padding="16dp"
+            android:layout_marginTop="8dp"
+            style="@style/Widget.Material3.Button" />
 
     </LinearLayout>
 

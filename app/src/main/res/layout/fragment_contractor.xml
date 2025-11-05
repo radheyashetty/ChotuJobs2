@@ -11,7 +11,8 @@
         android:text="Create New Job"
         android:textSize="18sp"
         android:padding="16dp"
-        android:layout_margin="16dp" />
+        android:layout_margin="16dp"
+        style="@style/Widget.Material3.Button" />
 
     <TextView
         android:layout_width="match_parent"

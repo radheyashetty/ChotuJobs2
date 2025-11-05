@@ -3,18 +3,14 @@ package com.chotujobs;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.widget.Toast;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
-
 import com.chotujobs.databinding.ActivityMainBinding;
 import com.chotujobs.fragments.ChatsFragment;
 import com.chotujobs.fragments.ContractorFragment;
 import com.chotujobs.fragments.JobsListFragment;
 import com.chotujobs.fragments.ProfileFragment;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.crashlytics.FirebaseCrashlytics;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -28,8 +24,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
-        FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true);
 
         auth = FirebaseAuth.getInstance();
         prefs = getSharedPreferences("chotujobs_prefs", MODE_PRIVATE);

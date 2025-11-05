@@ -12,13 +12,6 @@ public class Chat {
 
     public Chat() {}
 
-    public Chat(String chatId, List<String> userIds, String lastMessage, Date lastMessageTimestamp) {
-        this.chatId = chatId;
-        this.userIds = userIds;
-        this.lastMessage = lastMessage;
-        this.lastMessageTimestamp = lastMessageTimestamp;
-    }
-
     public String getChatId() {
         return chatId;
     }

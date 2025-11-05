@@ -34,11 +34,8 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d("ChatActivity", "onCreate: activity launched");
         binding = ActivityChatBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
-        // Setup back button in header (if needed, add ImageView for back button)
 
         firestoreService = FirestoreService.getInstance();
         chatId = getIntent().getStringExtra("chatId");

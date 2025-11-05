@@ -140,12 +140,23 @@ public class BidDialogFragment extends DialogFragment {
                         }
                         dismiss();
                     } else {
-                        String errorMsg = "Failed to place bid. ";
-                        if (userType == null || (!userType.equals("labour") && !userType.equals("agent"))) {
-                            errorMsg += "Your role must be 'labour' or 'agent'. ";
-                        }
-                        errorMsg += "Check if job is active and you have permission.";
-                        Toast.makeText(getContext(), errorMsg, Toast.LENGTH_LONG).show();
+                        // Check actual user role from Firestore for better error message
+                        firestoreService.getUserProfile(bidderId, user -> {
+                            if (getDialog() != null && getContext() != null) {
+                                String errorMsg = "Cannot place bid. ";
+                                if (user != null && user.getRole() != null) {
+                                    String role = user.getRole().toLowerCase();
+                                    if (!"labour".equals(role) && !"labourer".equals(role) && !"agent".equals(role)) {
+                                        errorMsg += "Your role is '" + user.getRole() + "'. You must be 'labour' or 'agent'. ";
+                                    } else {
+                                        errorMsg += "Please check if the job is active. ";
+                                    }
+                                } else {
+                                    errorMsg += "Please check your role and if the job is active. ";
+                                }
+                                Toast.makeText(getContext(), errorMsg, Toast.LENGTH_LONG).show();
+                            }
+                        });
                     }
                 }
             });
