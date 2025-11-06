@@ -1,15 +1,15 @@
 # ChotuJobs - Labor Marketplace Android App
 
-A simple Android application that connects daily wage laborers, contractors, and agents for job opportunities with a bidding system.
+A modern Android application that connects daily wage laborers, contractors, and agents for job opportunities with a bidding system and real-time messaging.
 
 ## 📋 Project Overview
 
 **Purpose**: Digital platform for connecting laborers, agents, and contractors in India for short-term work opportunities.
 
 **Target Users**:
-- **Labourers**: View active jobs and place bids
+- **Labourers**: View active jobs, place bids, and communicate with contractors
 - **Agents**: Place bids on behalf of multiple laborers
-- **Contractors**: Post jobs and select winning bids
+- **Contractors**: Post jobs, select winning bids, and communicate with bidders
 
 ## 🎯 Key Features
 
@@ -19,141 +19,131 @@ A simple Android application that connects daily wage laborers, contractors, and
    - Email/Password authentication via Firebase
    - User registration with automatic profile creation
    - Secure authentication with Firebase Auth
+   - Profile management with image upload support
 
 2. **Firestore Database**
-   - `users` collection: Stores user profiles (name, email, role)
+   - `users` collection: Stores user profiles (name, email, role, profile image)
    - `jobs` collection: Stores job postings with location (GeoPoint), images, and status
-   - `bids` sub-collection: Stores bids under each job with bidder info and winner flag
+   - `bids` sub-collection: Stores bids under each job with bidder info and status
+   - `chats` collection: Real-time messaging between users
+   - `messages` sub-collection: Chat messages with timestamps
    - Real-time sync across devices
 
 3. **Contractor Features**
    - Create new jobs with:
      - Title and Category (spinner)
      - Start date (date picker)
-     - Location selection via Google Maps
+     - Location selection
+     - Job requirements and bid limits
    - View all their posted jobs
-   - See bids for each job
-   - Select winning bid (closes job and exports to CSV)
+   - See bids for each job with bidder details
+   - Accept/reject bids
+   - Select winning bid (closes job and notifies winner via message)
+   - Real-time chat with bidders
 
 4. **Labourer Features**
    - View list of active jobs
    - Place bid amount on jobs
-   - Bid for themselves only
+   - View bid status (pending/accepted/rejected)
+   - Real-time chat with contractors
+   - Receive notifications when bid is accepted
 
 5. **Agent Features**
    - View same job listings as labourers
    - Select labourer from dropdown before bidding
    - Place bid on behalf of selected labourer
+   - Manage bids for multiple labourers
+   - Real-time chat functionality
 
-6. **CSV Export**
-   - Closed jobs automatically export to CSV
-   - Saved to device storage
-   - Includes job details, winner info, and all bids
+6. **Real-time Messaging**
+   - Chat with contractors (for labourers/agents)
+   - Chat with bidders (for contractors)
+   - Real-time message delivery
+   - Chat history persistence
+   - User-friendly chat interface
 
-7. **Google Maps Integration**
-   - Location picker for job creation
-   - Stores latitude/longitude as GeoPoint in Firestore
+7. **Dark Mode Support**
+   - Automatic dark mode based on system settings
+   - Material Design 3 theming
+   - Optimized color scheme for both light and dark themes
+   - Custom purple primary color in dark mode
+
+8. **User Profile Management**
+   - Edit profile information
+   - Upload and change profile images
+   - View profile details
 
 ## 🏗️ Architecture & Tech Stack
 
 ### Technologies Used
 
-- **Language**: Java
+- **Language**: Java 17
 - **Authentication**: Firebase Authentication (Email/Password)
 - **Database**: Cloud Firestore
-- **Storage**: Device local storage (CSV files)
-- **Maps**: Google Maps SDK
-- **UI/UX**: Material Design 3
+- **Storage**: Firebase Storage (for profile images)
+- **UI/UX**: Material Design 3 with Dark Mode support
+- **Image Loading**: Glide
 - **Build Tool**: Gradle with Kotlin DSL
 
 ### Project Structure
 
 ```
 app/src/main/java/com/chotujobs/
-├── MainActivity.java                 # Main dashboard with role-based fragments
-├── LoginActivity.java                # Firebase Auth login/registration
-├── CreateJobActivity.java            # Job creation form for contractors
-├── MapsActivity.java                 # Google Maps location picker
+├── MainActivity.java                    # Main dashboard with role-based fragments
+├── LoginActivity.java                   # Firebase Auth login/registration
+├── CreateJobActivity.java               # Job creation form for contractors
+├── EditProfileActivity.java             # Profile editing
+├── ChatActivity.java                    # Real-time messaging
 ├── models/
-│   ├── User.java                     # User data model
-│   ├── Job.java                      # Job data model
-│   └── Bid.java                      # Bid data model
+│   ├── User.java                        # User data model
+│   ├── Job.java                         # Job data model
+│   ├── Bid.java                         # Bid data model
+│   ├── Chat.java                        # Chat data model
+│   └── Message.java                     # Message data model
 ├── fragments/
-│   ├── LabourFragment.java          # Labourer dashboard
-│   ├── AgentFragment.java           # Agent dashboard
-│   ├── ContractorFragment.java      # Contractor dashboard
-│   ├── BidDialogFragment.java       # Bid placement dialog
-│   └── JobDetailsDialogFragment.java # Job details with bids
+│   ├── ProfileFragment.java             # User profile display
+│   ├── JobsListFragment.java            # Active jobs list (labourer/agent)
+│   ├── ContractorFragment.java          # Contractor's job list
+│   ├── ChatsFragment.java               # Chat list
+│   ├── BidDialogFragment.java           # Bid placement dialog
+│   ├── BidderDetailsDialogFragment.java # Bidder details and winner selection
+│   └── JobDetailsDialogFragment.java    # Job details with bids
 ├── adapters/
-│   ├── JobAdapter.java              # RecyclerView adapter for jobs
-│   └── ContractorJobAdapter.java    # RecyclerView adapter for contractor jobs
-├── services/
-│   └── FirestoreService.java        # Firestore CRUD operations
-└── util/
-    └── CSVExporter.java              # CSV export utility
+│   ├── JobAdapter.java                  # RecyclerView adapter for jobs
+│   ├── ContractorJobAdapter.java        # RecyclerView adapter for contractor jobs
+│   ├── BidAdapter.java                  # RecyclerView adapter for bids
+│   ├── ChatsAdapter.java                # RecyclerView adapter for chats
+│   └── MessagesAdapter.java             # RecyclerView adapter for messages
+└── services/
+    └── FirestoreService.java            # Firestore CRUD operations
 ```
 
 ## 🚀 Setup Instructions
 
 ### Prerequisites
 
-1. **Android Studio**: Arctic Fox or later
+1. **Android Studio**: Hedgehog (2023.1.1) or later
 2. **Java JDK**: Version 17 or later
 3. **Firebase Account**: Free tier
-4. **Google Cloud Account**: For Maps API
+4. **Android SDK**: API 28 (Android 9.0) minimum, API 34 target
 
 ### Firebase Setup
 
 1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
 2. Enable **Authentication** > Email/Password
 3. Enable **Cloud Firestore Database**
-4. Download `google-services.json` and place it in `app/`
-5. Add Firestore security rules (see below)
-
-### Google Maps Setup
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create/select a project
-3. Enable **Maps SDK for Android**
-4. Create API key
-5. Replace `YOUR_GOOGLE_MAPS_API_KEY_HERE` in `AndroidManifest.xml`
-
-### Firestore Security Rules
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Users collection
-    match /users/{userId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Jobs collection
-    match /jobs/{jobId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && 
-                       (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'winnerUserId']));
-      
-      // Bids sub-collection
-      match /bids/{bidId} {
-        allow read: if true;
-        allow create: if request.auth != null;
-        allow update: if request.auth != null;
-      }
-    }
-  }
-}
-```
+4. Enable **Firebase Storage** (for profile images)
+5. Download `google-services.json` from Firebase Console
+6. Copy `app/google-services.json.example` to `app/google-services.json` and replace with your actual Firebase config
+7. Add Firestore security rules (see `firestore.rules` file)
+8. Add Storage security rules (see `storage.rules` file)
 
 ### Building the App
 
 1. Clone the repository
 2. Open project in Android Studio
 3. Sync Gradle files
-4. Replace Maps API key in `AndroidManifest.xml`
+4. Copy `app/google-services.json.example` to `app/google-services.json` and add your Firebase configuration
 5. Run on emulator or device
 
 ## 📱 User Flows
@@ -172,12 +162,13 @@ service cloud.firestore {
 
 1. Login → See "My Jobs" fragment
 2. Tap "Create Job" button
-3. Fill form: title, category, date
-4. Pick location on map
-5. Save job → Stored in Firestore
-6. View job in list
-7. Tap job → See bids
-8. Select winner → Job closed, CSV exported
+3. Fill form: title, category, date, requirements
+4. Save job → Stored in Firestore
+5. View job in list
+6. Tap job → See bids with bidder details
+7. Accept/reject bids or select winner
+8. Select winner → Job closed, winner notified via message
+9. Chat with bidders directly
 
 ### Labourer Flow
 
@@ -185,7 +176,9 @@ service cloud.firestore {
 2. View all active jobs
 3. Tap job → Enter bid amount
 4. Submit bid → Stored in Firestore sub-collection
-5. Wait for contractor to select winner
+5. View bid status updates
+6. Receive message when bid is accepted
+7. Chat with contractors
 
 ### Agent Flow
 
@@ -195,6 +188,8 @@ service cloud.firestore {
 4. Enter bid amount
 5. Submit bid → Stored with labourer reference
 6. Bid shows as "Agent (for Labourer Name)"
+7. Manage multiple bids for different labourers
+8. Chat with contractors
 
 ## 🗄️ Database Schema
 
@@ -205,7 +200,8 @@ service cloud.firestore {
 {
   "name": "John Doe",
   "email": "john@example.com",
-  "role": "labourer|agent|contractor"
+  "role": "labourer|agent|contractor",
+  "profileImageUrl": "https://..."
 }
 ```
 
@@ -216,11 +212,12 @@ service cloud.firestore {
   "title": "Construction Work",
   "category": "Construction",
   "startDate": "25/12/2024",
-  "location": { "lat": 19.0760, "lng": 72.8777 },
+  "location": "19.0760, 72.8777",
   "status": "active|closed",
   "timestamp": 1703001234567,
-  "imagePath": "",
   "imageUrl": "",
+  "requirements": "Must have experience",
+  "bidLimit": 10,
   "winnerUserId": "winner_uid"
 }
 ```
@@ -230,49 +227,49 @@ service cloud.firestore {
 {
   "bidderId": "bidder_uid",
   "bidAmount": 1500,
+  "jobId": "job_id",
   "labourerIdIfAgent": "labourer_uid or null",
-  "winnerFlag": 0 or 1,
+  "status": "pending|accepted|rejected",
   "timestamp": 1703001234567
 }
 ```
 
-## 📊 CSV Export Format
+#### `chats/{chatId}`
+```json
+{
+  "userIds": ["user1_uid", "user2_uid"],
+  "lastMessage": "Hello",
+  "lastMessageTime": 1703001234567
+}
+```
 
-```csv
-ChotuJobs - Job Completion Report
-=================================
-
-Job ID: abc123
-Title: Construction Work
-Category: Construction
-Start Date: 25/12/2024
-Location: 19.0760, 72.8777
-
-WINNING BID:
--------------
-Bidder: John Doe
-Email: john@example.com
-Labourer: John Doe (if agent)
-Amount: ₹1500
-
-ALL BIDS SUMMARY:
------------------
-- John Doe: ₹1500 [WINNER]
-- Jane Smith: ₹1700
-- Agent (for Bob): ₹1600
-
-Report Generated: 25/12/2024 10:30:00
+#### `chats/{chatId}/messages/{messageId}`
+```json
+{
+  "senderId": "sender_uid",
+  "message": "Hello, I'm interested in this job",
+  "timestamp": 1703001234567
+}
 ```
 
 ## 🔒 Security & Permissions
 
 ### App Permissions
 - `INTERNET`: For Firebase/Firestore
-- `ACCESS_FINE_LOCATION`: For Maps location picker
+- `ACCESS_FINE_LOCATION`: For location services
 - `ACCESS_COARSE_LOCATION`: Fallback location
-- `READ_EXTERNAL_STORAGE`: For CSV export (Android 10-)
-- `WRITE_EXTERNAL_STORAGE`: For CSV export (Android 9-)
-- `CAMERA`: For future image capture
+- `READ_EXTERNAL_STORAGE`: For image selection (Android 10-)
+- `CAMERA`: For profile image capture
+
+### Firestore Security Rules
+
+See `firestore.rules` file for complete security rules. Key points:
+- Users can only read/write their own profile
+- Jobs are readable by all authenticated users
+- Only contractors can create jobs
+- Only job owners can update job status and select winners
+- Bids can be created by labourers/agents, updated by job owners
+- Chats are only accessible by participants
 
 ## 🧪 Testing
 
@@ -281,11 +278,16 @@ Report Generated: 25/12/2024 10:30:00
 - [ ] User registration with Firebase
 - [ ] Login with valid credentials
 - [ ] Role-based dashboard display
-- [ ] Contractor: Create job with location
+- [ ] Contractor: Create job
 - [ ] Labourer: Place bid
 - [ ] Agent: Place bid with labourer selection
+- [ ] Contractor: View bids and bidder details
+- [ ] Contractor: Accept/reject bids
 - [ ] Contractor: Select winner
-- [ ] CSV export file creation
+- [ ] Winner notification via message
+- [ ] Real-time chat functionality
+- [ ] Profile editing and image upload
+- [ ] Dark mode switching
 - [ ] Logout functionality
 
 ## 📦 Build & Deployment
@@ -308,21 +310,20 @@ Output: `app/build/outputs/apk/debug/app-debug.apk`
 
 ## 🐛 Known Issues
 
-1. Firebase Storage not configured (no billing account) - images stored as local paths
+1. Firebase Storage requires billing account for production use
 2. No offline support yet (Firestore offline persistence can be enabled)
-3. CSV export uses app-specific directory (Android 10+ compatible)
+3. Image uploads require Firebase Storage billing
 
 ## 🔮 Future Enhancements
 
-- [ ] Add image upload to Firebase Storage (requires billing)
-- [ ] Implement real-time bid updates
-- [ ] Add job search & filters
-- [ ] Implement push notifications
-- [ ] Add review/rating system
 - [ ] Enable Firestore offline persistence
-- [ ] Add chat/messaging
+- [ ] Implement push notifications
+- [ ] Add job search & filters
+- [ ] Add review/rating system
 - [ ] Implement payment integration
-- [ ] Add dark mode
+- [ ] Add job categories with icons
+- [ ] Implement job image uploads
+- [ ] Add location-based job filtering
 
 ## 📝 License
 
@@ -334,6 +335,6 @@ Built for ChotuJobs - Connecting daily wage workers with opportunities.
 
 ---
 
-**Last Updated**: December 2024
+**Last Updated**: January 2025
 **Version**: 1.0.0
-**Status**: ✅ Production Ready (Firestore-based)
+**Status**: ✅ Production Ready
